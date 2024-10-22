@@ -72,7 +72,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
     });
 
     const contractDetailsFormatted = useMemo(() => {
-        if (contractDetails && contractAPIDetailsSuccess && contractDetails[0] == true) {
+        if (contractDetails && contractDetailsSuccess && contractDetails[0] == true) {
             return {
                 deployed: contractDetails[0],
                 accessTimeId: contractDetails[1],
