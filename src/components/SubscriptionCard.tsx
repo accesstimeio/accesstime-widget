@@ -14,9 +14,12 @@ import {
 import { ThemeProvider } from "../providers/ThemeProvider";
 import { IconType } from "react-icons";
 import { SubscriptionButton } from "./SubscriptionButton";
+import { useState } from "react";
+import { Address, zeroAddress } from "viem";
 
 export interface SubscriptionCardProps {
     chainId: number;
+    accessTime: Address;
     cardBodyType: "backgroundImage" | "react-icons" | "child-component";
     subscriptionText?: string;
     packageId?: string;
@@ -32,6 +35,7 @@ export interface SubscriptionCardProps {
 }
 export const SubscriptionCard = ({
     chainId,
+    accessTime,
     cardBodyType,
     subscriptionText,
     packageId,
@@ -41,6 +45,7 @@ export const SubscriptionCard = ({
     style,
     className
 }: SubscriptionCardProps) => {
+    const [paymentMethod] = useState<Address>(zeroAddress);
     const multiplePaymentMethod = false;
 
     return (
@@ -62,9 +67,9 @@ export const SubscriptionCard = ({
                     <Box position="relative" minH={180} w="full">
                         <AbsoluteCenter className={className} style={style}>
                             {
-                                cardBodyType == "child-component" ? 
-                                children : 
-                                cardBodyType == "react-icons" && <Icon as={icon} boxSize={24} />
+                                cardBodyType == "child-component" ?
+                                    children :
+                                    cardBodyType == "react-icons" && <Icon as={icon} boxSize={24} />
                             }
                         </AbsoluteCenter>
                     </Box>
@@ -84,8 +89,11 @@ export const SubscriptionCard = ({
                         }
                         <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
                             <SubscriptionButton
+                                accessTime={accessTime}
                                 chainId={chainId}
+                                paymentMethod={paymentMethod}
                                 subscriptionText={subscriptionText}
+                                packageId={packageId}
                             />
                         </GridItem>
                         <GridItem colSpan={5}>
