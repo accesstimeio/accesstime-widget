@@ -36,6 +36,8 @@ export interface SubscriptionCardProps {
     style?: React.CSSProperties;
     className?: string;
     onSubscription?: (transactionHash: Hash) => void;
+    buttonClassName?: string;
+    buttonStyle?: React.CSSProperties;
 }
 export const SubscriptionCard = ({
     wagmiConfig,
@@ -49,10 +51,13 @@ export const SubscriptionCard = ({
     icon,
     style,
     className,
-    onSubscription
+    onSubscription,
+    buttonClassName,
+    buttonStyle
 }: SubscriptionCardProps) => {
     const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
     const { contractDetails, contractAPIDetails } = useAccessTime(chainId, accessTime);
+    const [timeAmount, setTimeAmount] = useState<number | null>(null);
 
     const isPackageExist = useMemo(() => {
         let isExist = false;
@@ -91,6 +96,7 @@ export const SubscriptionCard = ({
 
             const dateNow = DateTime.now();
             const datePlusPackageTime = DateTime.fromSeconds(dateNow.toSeconds() + packageTimeInSeconds);
+            setTimeAmount(packageTimeInSeconds);
 
             return datePlusPackageTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
         }
@@ -196,6 +202,70 @@ export const SubscriptionCard = ({
         };
     }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, packageDataSuccess, packageData, paymentMethodOptions]);
 
+    const extraTimeIds = useMemo(() => {
+        if (contractAPIDetails && contractAPIDetails.extraTimes) {
+            return contractAPIDetails.extraTimes.map((extraTime) => {
+                return {
+                    abi: ACCESTIME_ABI,
+                    address: accessTime,
+                    functionName: "extras",
+                    args: [BigInt(extraTime)],
+                    chainId
+                }
+            })
+        }
+        return [];
+    }, [contractAPIDetails])
+
+    const {
+        data: extraTimeData,
+        isLoading: extraTimeDataLoading,
+        isSuccess: extraTimeDataSuccess
+    } = useReadContracts({
+        query: {
+            enabled: extraTimeIds.length > 0 ? true : false
+        },
+        contracts: extraTimeIds
+    })
+
+    const availableExtraTime: number | null = useMemo(() => {
+        if (extraTimeData && extraTimeDataSuccess && timeAmount != null) {
+            let foundExtraTime: number = 0;
+
+            for (let i = 0; i < extraTimeData.length; i++) {
+                const extraTime = extraTimeData[i];
+                if (extraTime.status == "success") {
+                    const [limit, percent, available] = extraTime.result as unknown as [bigint, bigint, boolean];
+                    const limit_ = Number(limit.toString());
+                    const percent_ = Number(percent.toString());
+
+                    const calculatedExtraTime = (timeAmount / 100) * percent_;
+                    if (available && timeAmount >= limit_ && calculatedExtraTime >= foundExtraTime) {
+                        foundExtraTime = calculatedExtraTime;
+                    }
+                }
+            }
+
+            if (foundExtraTime == 0) {
+                return null;
+            }
+
+            return foundExtraTime;
+        }
+
+        return null;
+    }, [extraTimeData, extraTimeDataSuccess, timeAmount]);
+
+    const extraTimeHumanized = useMemo(() => {
+        if (availableExtraTime != null) {
+            const dateNow = DateTime.now();
+            const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + availableExtraTime);
+
+            return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
+        }
+        return "-";
+    }, [availableExtraTime]);
+
     useEffect(() => {
         if (paymentMethodOptions.length > 0 && paymentMethod == null) {
             setPaymentMethod(getAddress(paymentMethodOptions[0].value));
@@ -218,6 +288,15 @@ export const SubscriptionCard = ({
                                             Package: {packageTimeHumanized}
                                         </Badge>
                                     )
+                            }
+                            {
+                                extraTimeDataLoading ? (
+                                    <Skeleton borderRadius="lg" mb="1" height="18px" width="85px" />
+                                ) : availableExtraTime != null && (
+                                    <Badge colorScheme="purple" width="fit-content" borderRadius="lg" textTransform="unset" mb="1">
+                                        ExtraTime: {extraTimeHumanized}
+                                    </Badge>
+                                )
                             }
                             <Badge display="flex" alignItems="center" colorScheme="gray" width="fit-content" fontSize="10" borderRadius="lg" textTransform="unset">
                                 {getChainName(chainId)}
@@ -259,6 +338,8 @@ export const SubscriptionCard = ({
                                     subscriptionText={subscriptionText}
                                     packageId={packageId}
                                     onSubscription={onSubscription}
+                                    className={buttonClassName}
+                                    style={buttonStyle}
                                 />
                             </GridItem>
                             {

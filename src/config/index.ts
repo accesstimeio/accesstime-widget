@@ -14,7 +14,8 @@ export const ACCESTIME_ABI = parseAbi([
     'function purchase(uint256 amount,address paymentToken)',
     'function purchasePackage(uint256 amount,address paymentToken,uint256 packageID)',
     'function packages(uint256 packageId) view returns (uint256 unixTime,bool exist)',
-    'function tokenRates(address paymentToken) view returns (uint256 rate)'
+    'function tokenRates(address paymentToken) view returns (uint256 rate)',
+    'function extras(uint256 extraId) view returns (uint256 unixTime,uint256 percent,bool exist)'
 ]);
 
 export const API_URL = "https://api.accesstime.io";

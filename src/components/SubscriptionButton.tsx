@@ -13,6 +13,8 @@ export interface SubscriptionButtonProps {
     packageId?: string;
     subscriptionText?: string;
     onSubscription?: (transactionHash: Hash) => void;
+    className?: string;
+    style?: React.CSSProperties;
 }
 export const SubscriptionButton = ({
     wagmiConfig,
@@ -21,7 +23,9 @@ export const SubscriptionButton = ({
     paymentMethod,
     packageId,
     subscriptionText,
-    onSubscription
+    onSubscription,
+    className,
+    style
 }: SubscriptionButtonProps) => {
     const { walletConnectionDetails, subscribe, subscribePackage, contractAPIDetails, loading, error } = useAccessTime(chainId, accessTime);
 
@@ -51,18 +55,18 @@ export const SubscriptionButton = ({
             <ThemeProvider>
                 {
                     !walletConnectionDetails.isWalletConnected ?
-                        <Button w="full" colorScheme="blue">Connect Wallet</Button>
+                        <Button className={className} style={style} w="full" colorScheme="blue">Connect Wallet</Button>
                         :
                         walletConnectionDetails.isSupportedChain == false ?
-                            <Button w="full" colorScheme="gray">Config is invalid!</Button>
+                            <Button className={className} style={style} w="full" colorScheme="gray">Config is invalid!</Button>
                             :
                             walletConnectionDetails.isCorrectChainConnected == false ?
-                                <Button w="full" colorScheme="yellow">Switch Network</Button>
+                                <Button className={className} style={style} w="full" colorScheme="yellow">Switch Network</Button>
                                 :
                                 paymentMethodExist == false ?
-                                    <Button w="full" colorScheme="red" disabled>Payment Method not found!</Button>
+                                    <Button className={className} style={style} w="full" colorScheme="red" disabled>Payment Method not found!</Button>
                                     :
-                                    <Button w="full" colorScheme={error ? "red" : "blue"} isLoading={loading} disabled={loading || error} onClick={subscribeRouter}>
+                                    <Button className={className} style={style} w="full" colorScheme={error ? "red" : "blue"} isLoading={loading} disabled={loading || error} onClick={subscribeRouter}>
                                         {
                                             error ?
                                                 "Error occurred!"
