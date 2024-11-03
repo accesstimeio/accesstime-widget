@@ -1,18 +1,40 @@
-import { Button } from "@chakra-ui/react"
+import {
+    AbsoluteCenter,
+    Box,
+    Button,
+    Divider,
+    GridItem,
+    NumberInput,
+    NumberInputField,
+    Select,
+    SimpleGrid,
+    Skeleton
+} from "@chakra-ui/react"
 import { ThemeProvider } from "../providers/ThemeProvider"
 import { useAccessTime } from "../hooks";
-import { Address, Hash, zeroHash } from "viem";
-import { Config, WagmiProvider } from "wagmi";
-import { useMemo } from "react";
+import {
+    Address,
+    formatEther,
+    getAddress,
+    Hash,
+    parseAbi,
+    parseEther,
+    zeroAddress,
+    zeroHash
+} from "viem";
+import { Config, useReadContract, useReadContracts, WagmiProvider } from "wagmi";
+import { useEffect, useMemo, useState } from "react";
+import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
+import { getChainCurrencyName } from "../helpers";
 
 export interface SubscriptionButtonProps {
     wagmiConfig: Config;
     chainId: number;
     accessTime: Address;
-    paymentMethod: Address;
     packageId?: string;
     subscriptionText?: string;
     onSubscription?: (transactionHash: Hash) => void;
+    onTimeAmount?: (timeAmount: number | null) => void;
     className?: string;
     style?: React.CSSProperties;
 }
@@ -20,26 +42,179 @@ export const SubscriptionButton = ({
     wagmiConfig,
     chainId,
     accessTime,
-    paymentMethod,
     packageId,
     subscriptionText,
     onSubscription,
+    onTimeAmount,
     className,
     style
 }: SubscriptionButtonProps) => {
-    const { walletConnectionDetails, subscribe, subscribePackage, contractAPIDetails, loading, error } = useAccessTime(chainId, accessTime);
+    const {
+        walletConnectionDetails,
+        subscribe,
+        subscribePackage,
+        contractDetails,
+        contractAPIDetails,
+        loading,
+        error
+    } = useAccessTime(chainId, accessTime);
+    const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
+    const [timeAmount, setTimeAmount] = useState<number | null>(null);
+    const [subscribeLoading, setSubscribeLoading] = useState<boolean>(false);
 
     const buttonText = subscriptionText ? subscriptionText : "Subscribe";
 
-    const subscribeRouter = async () => {
-        let transactionHash: Hash = zeroHash;
-        if (packageId) {
-            transactionHash = await subscribePackage(BigInt("0"), paymentMethod, packageId);
-        } else {
-            transactionHash = await subscribe(BigInt("0"), paymentMethod);
+    const isPackageExist = useMemo(() => {
+        let isExist = false;
+        if (packageId && (contractDetails.deployed && contractDetails.packageModule) && (contractAPIDetails && contractAPIDetails.packages)) {
+            isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
-        if (transactionHash != zeroHash) {
-            onSubscription && onSubscription(transactionHash);
+        return isExist;
+    }, [contractAPIDetails, contractDetails]);
+
+    const {
+        data: packageData,
+        isSuccess: packageDataSuccess,
+    } = useReadContract({
+        query: {
+            enabled: isPackageExist
+        },
+        address: accessTime,
+        abi: ACCESTIME_ABI,
+        functionName: "packages",
+        args: [packageId ? BigInt(packageId) : ZERO_AMOUNT],
+        chainId
+    })
+
+    const multiplePaymentMethod = useMemo(() => {
+        let isMultiple = false;
+        if (contractDetails.deployed && (contractAPIDetails && contractAPIDetails.paymentMethods)) {
+            isMultiple = contractAPIDetails.paymentMethods.length > 1 ? true : false;
+        }
+        return isMultiple;
+    }, [contractAPIDetails, contractDetails]);
+
+    const tokenContracts = useMemo(() => {
+        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
+            const tokenBasicABI = parseAbi(["function symbol() view returns (string)"]);
+            return contractAPIDetails.paymentMethods.filter((paymentMethod) => paymentMethod != zeroAddress).map((paymentMethod) => {
+                return {
+                    abi: tokenBasicABI,
+                    address: getAddress(paymentMethod),
+                    chainId
+                }
+            })
+        }
+        return [];
+    }, [contractAPIDetails])
+
+    const {
+        data: tokenSymbolData,
+        isLoading: tokenSymbolDataLoading,
+        isSuccess: tokenSymbolDataSuccess
+    } = useReadContracts({
+        query: {
+            enabled: tokenContracts.length > 0
+        },
+        contracts: tokenContracts.map((tokenContract) => {
+            return {
+                ...tokenContract,
+                functionName: "symbol"
+            }
+        })
+    })
+
+    const paymentMethodOptions: { value: string, text: string }[] = useMemo(() => {
+        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
+            let paymentMethodTokenIndex = 0;
+            return contractAPIDetails.paymentMethods.map((paymentMethod) => {
+                const tokenSymbol = (tokenSymbolDataSuccess && tokenSymbolData[paymentMethodTokenIndex].result == "success") ?
+                    tokenSymbolData[paymentMethodTokenIndex].result as string : "TKN";
+                const text = paymentMethod == zeroAddress ? getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
+
+                if (paymentMethod != zeroAddress) {
+                    paymentMethodTokenIndex++;
+                }
+                return {
+                    value: paymentMethod.toLowerCase(),
+                    text
+                }
+            })
+        }
+        return [];
+    }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess]);
+
+    const paymentMethodsRateCalls = useMemo(() => {
+        if (paymentMethodOptions.length > 0) {
+            return paymentMethodOptions.map((paymentMethod) => {
+                return {
+                    abi: ACCESTIME_ABI,
+                    address: accessTime,
+                    functionName: "tokenRates",
+                    args: [getAddress(paymentMethod.value)],
+                    chainId
+                }
+            })
+        }
+        return [];
+    }, [paymentMethodOptions])
+
+    const {
+        data: paymentMethodRateData,
+        isSuccess: paymentMethodRateDataSuccess
+    } = useReadContracts({
+        query: {
+            enabled: paymentMethodsRateCalls.length > 0
+        },
+        contracts: paymentMethodsRateCalls
+    })
+
+    const paymetMethodTotalPayment = useMemo(() => {
+        if (paymentMethodRateData && paymentMethodRateDataSuccess && paymentMethod != null && paymentMethodOptions.length > 0) {
+            const paymentMethodIndex = paymentMethodOptions.findIndex((paymentMethod_) => paymentMethod_.value.toLowerCase() == paymentMethod.toLowerCase());
+
+            if (paymentMethodIndex != -1) {
+                const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ? paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
+                const desiredTime = timeAmount != null ? timeAmount : ZERO_AMOUNT;
+
+                if (rateAsHour != ZERO_AMOUNT && BigInt(desiredTime) != ZERO_AMOUNT) {
+                    const desiredHours = (parseEther("1") * BigInt(desiredTime)) / BigInt("3600");
+
+                    return {
+                        amount: rateAsHour * desiredHours,
+                        symbol: paymentMethodOptions[paymentMethodIndex].text,
+                        calculated: true,
+                    }
+                }
+            }
+        }
+        return {
+            amount: ZERO_AMOUNT,
+            symbol: "-",
+            calculated: false,
+        };
+    }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, paymentMethodOptions, timeAmount]);
+
+    const subscribeRouter = async () => {
+        if (timeAmount != null && paymentMethod != null && paymetMethodTotalPayment.amount > ZERO_AMOUNT && paymetMethodTotalPayment.calculated == true) {
+            setSubscribeLoading(true);
+            let transactionHash: Hash = zeroHash;
+            try {
+                if (packageId) {
+                    transactionHash = await subscribePackage(BigInt(formatEther(paymetMethodTotalPayment.amount)), getAddress(paymentMethod), packageId);
+                } else {
+                    transactionHash = await subscribe(BigInt(formatEther(paymetMethodTotalPayment.amount)), getAddress(paymentMethod));
+                }
+            } catch (_err) {
+                setSubscribeLoading(false);
+                throw new Error("Contract call failed!");
+            }
+            setSubscribeLoading(false);
+            if (transactionHash != zeroHash && onSubscription) {
+                onSubscription(transactionHash);
+            }
+        } else {
+            throw new Error("Requested time is invalid!");
         }
     }
 
@@ -49,6 +224,35 @@ export const SubscriptionButton = ({
         }
         return true; // due to loading
     }, [contractAPIDetails]);
+
+    useEffect(() => {
+        if (paymentMethodOptions.length > 0 && paymentMethod == null) {
+            setPaymentMethod(getAddress(paymentMethodOptions[0].value));
+        }
+    }, [paymentMethodOptions]);
+
+    useEffect(() => {
+        if (packageId) {
+            if (packageData && packageDataSuccess) {
+                const packageTimeInSeconds = Number(packageData[0].toString());
+                setTimeAmount(packageTimeInSeconds);
+            }
+        } else {
+            setTimeAmount(1);
+        }
+    }, [packageData, packageDataSuccess]);
+
+    useEffect(() => {
+        if (onTimeAmount) {
+            onTimeAmount(timeAmount);
+        }
+    }, [timeAmount]);
+
+    const totalPaymentAmount = formatEther(BigInt(formatEther(paymetMethodTotalPayment.amount)));
+    const totalPaymentText = totalPaymentAmount.split(".").length == 1 ? totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
+        totalPaymentAmount.split(".")[1].slice(0, 4)
+        :
+        totalPaymentAmount.split(".")[1]);
 
     return (
         <WagmiProvider config={wagmiConfig}>
@@ -66,14 +270,58 @@ export const SubscriptionButton = ({
                                 paymentMethodExist == false ?
                                     <Button className={className} style={style} w="full" colorScheme="red" disabled>Payment Method not found!</Button>
                                     :
-                                    <Button className={className} style={style} w="full" colorScheme={error ? "red" : "blue"} isLoading={loading} disabled={loading || error} onClick={subscribeRouter}>
+                                    <SimpleGrid columns={5} columnGap="2" w="full">
                                         {
-                                            error ?
-                                                "Error occurred!"
-                                                :
-                                                buttonText
+                                            contractDetails.packageModule == false && (
+                                                <GridItem mb={2} colSpan={5}>
+                                                    <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
+                                                        !isNaN(Number(e)) && setTimeAmount(Number(e))
+                                                    }}>
+                                                        <NumberInputField />
+                                                    </NumberInput>
+                                                </GridItem>
+                                            )
                                         }
-                                    </Button>
+                                        {
+                                            multiplePaymentMethod &&
+                                            (tokenSymbolDataLoading ? (
+                                                <GridItem colSpan={2}><Skeleton height="100%" borderRadius="lg" /></GridItem>
+                                            ) :
+                                                paymentMethodOptions.length > 0 && (
+                                                    <GridItem colSpan={2}>
+                                                        <Select fontSize="sm" variant="filled" borderRadius="lg" onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}>
+                                                            {
+                                                                paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
+                                                            }
+                                                        </Select>
+                                                    </GridItem>
+                                                ))
+                                        }
+                                        <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
+                                            <Button className={className} style={style} w="full" colorScheme={error ? "red" : "blue"} isLoading={loading || subscribeLoading} disabled={loading || subscribeLoading || error} onClick={subscribeRouter}>
+                                                {
+                                                    error ?
+                                                        "Error occurred!"
+                                                        :
+                                                        buttonText
+                                                }
+                                            </Button>
+                                        </GridItem>
+                                        {
+                                            paymentMethod != null && (
+                                                <GridItem colSpan={5}>
+                                                    <Box position="relative" fontSize="xs" color="blackAlpha.700">
+                                                        <Divider mt={4} mb={2} />
+                                                        <AbsoluteCenter bg='white' px='4' whiteSpace="nowrap">
+                                                            <Skeleton isLoaded={paymetMethodTotalPayment.calculated}>
+                                                                Total Payment: {`${totalPaymentText} ${paymetMethodTotalPayment.symbol}`}
+                                                            </Skeleton>
+                                                        </AbsoluteCenter>
+                                                    </Box>
+                                                </GridItem>
+                                            )
+                                        }
+                                    </SimpleGrid>
                 }
             </ThemeProvider>
         </WagmiProvider>

@@ -15,7 +15,7 @@ export type ProjectResponseDto = {
 	packages: string[];
 	removedPackages: string[];
 	paused: boolean;
-	paymentMethods: Address[];
+	paymentMethods: string[];
 	prevOwner: Address;
 };
 

@@ -5,21 +5,17 @@ import {
     Card,
     CardBody,
     CardFooter,
-    Divider,
-    GridItem,
     Icon,
-    Select,
-    SimpleGrid,
     Skeleton,
 } from "@chakra-ui/react"
 import { ThemeProvider } from "../providers/ThemeProvider";
 import { IconType } from "react-icons";
 import { SubscriptionButton } from "./SubscriptionButton";
-import { useEffect, useMemo, useState } from "react";
-import { Address, formatEther, getAddress, Hash, parseAbi, zeroAddress } from "viem";
+import { useMemo, useState } from "react";
+import { Address, Hash } from "viem";
 import { Config, useReadContract, useReadContracts, WagmiProvider } from "wagmi";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
-import { getChainCurrencyName, getChainName } from "../helpers";
+import { getChainName } from "../helpers";
 import { useAccessTime } from "../hooks";
 import { DateTime } from "luxon";
 
@@ -55,7 +51,6 @@ export const SubscriptionCard = ({
     buttonClassName,
     buttonStyle
 }: SubscriptionCardProps) => {
-    const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
     const { contractDetails, contractAPIDetails } = useAccessTime(chainId, accessTime);
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
 
@@ -65,14 +60,6 @@ export const SubscriptionCard = ({
             isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
         return isExist;
-    }, [contractAPIDetails, contractDetails]);
-
-    const multiplePaymentMethod = useMemo(() => {
-        let isMultiple = false;
-        if (contractDetails.deployed && (contractAPIDetails && contractAPIDetails.paymentMethods)) {
-            isMultiple = contractAPIDetails.paymentMethods.length > 0 ? true : false;
-        }
-        return isMultiple;
     }, [contractAPIDetails, contractDetails]);
 
     const {
@@ -102,105 +89,6 @@ export const SubscriptionCard = ({
         }
         return "-";
     }, [packageData, packageDataSuccess]);
-
-    const tokenContracts = useMemo(() => {
-        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
-            const tokenBasicABI = parseAbi(["function symbol() view returns (string)"]);
-            return contractAPIDetails.paymentMethods.filter((paymentMethod) => paymentMethod != zeroAddress).map((paymentMethod) => {
-                return {
-                    abi: tokenBasicABI,
-                    address: paymentMethod,
-                    chainId
-                }
-            })
-        }
-        return [];
-    }, [contractAPIDetails])
-
-    const {
-        data: tokenSymbolData,
-        isLoading: tokenSymbolDataLoading,
-        isSuccess: tokenSymbolDataSuccess
-    } = useReadContracts({
-        query: {
-            enabled: tokenContracts.length > 0
-        },
-        contracts: tokenContracts.map((tokenContract) => {
-            return {
-                ...tokenContract,
-                functionName: "symbol"
-            }
-        })
-    })
-
-    const paymentMethodOptions: { value: string, text: string }[] = useMemo(() => {
-        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
-            let paymentMethodTokenIndex = 0;
-            return contractAPIDetails.paymentMethods.map((paymentMethod) => {
-                const tokenSymbol = (tokenSymbolDataSuccess && tokenSymbolData[paymentMethodTokenIndex].result == "success") ?
-                    tokenSymbolData[paymentMethodTokenIndex].result : "TKN";
-                const text = paymentMethod == zeroAddress ? getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
-
-                if (paymentMethod != zeroAddress) {
-                    paymentMethodTokenIndex++;
-                }
-                return {
-                    value: paymentMethod.toLowerCase(),
-                    text
-                }
-            })
-        }
-        return [];
-    }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess]);
-
-    const paymentMethodsRateCalls = useMemo(() => {
-        if (paymentMethodOptions.length > 0) {
-            return paymentMethodOptions.map((paymentMethod) => {
-                return {
-                    abi: ACCESTIME_ABI,
-                    address: accessTime,
-                    functionName: "tokenRates",
-                    args: [getAddress(paymentMethod.value)],
-                    chainId
-                }
-            })
-        }
-        return [];
-    }, [paymentMethodOptions])
-
-    const {
-        data: paymentMethodRateData,
-        isSuccess: paymentMethodRateDataSuccess
-    } = useReadContracts({
-        query: {
-            enabled: paymentMethodsRateCalls.length > 0
-        },
-        contracts: paymentMethodsRateCalls
-    })
-
-    const paymetMethodTotalPayment = useMemo(() => {
-        if (paymentMethodRateData && paymentMethodRateDataSuccess && paymentMethod != null && paymentMethodOptions.length > 0) {
-            const paymentMethodIndex = paymentMethodOptions.findIndex((paymentMethod_) => paymentMethod_.value.toLowerCase() == paymentMethod.toLowerCase());
-
-            if (paymentMethodIndex != -1) {
-                const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ? paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
-                const packageTime = packageDataSuccess ? packageData[0] : ZERO_AMOUNT;
-
-                if (rateAsHour != ZERO_AMOUNT && packageTime != ZERO_AMOUNT) {
-                    const desiredHours = packageTime / BigInt("3600");
-
-                    return {
-                        amount: rateAsHour * desiredHours,
-                        symbol: paymentMethodOptions[paymentMethodIndex].text
-                    }
-                }
-            }
-        }
-        return {
-            amount: ZERO_AMOUNT,
-            symbol: "-"
-        };
-    }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, packageDataSuccess, packageData, paymentMethodOptions]);
 
     const extraTimeIds = useMemo(() => {
         if (contractAPIDetails && contractAPIDetails.extraTimes) {
@@ -266,12 +154,6 @@ export const SubscriptionCard = ({
         return "-";
     }, [availableExtraTime]);
 
-    useEffect(() => {
-        if (paymentMethodOptions.length > 0 && paymentMethod == null) {
-            setPaymentMethod(getAddress(paymentMethodOptions[0].value));
-        }
-    }, [paymentMethodOptions]);
-
     return (
         <WagmiProvider config={wagmiConfig}>
             <ThemeProvider>
@@ -313,50 +195,19 @@ export const SubscriptionCard = ({
                         </Box>
                     </CardBody>
                     <CardFooter>
-                        <SimpleGrid columns={5} columnGap="2" w="full">
-                            {
-                                multiplePaymentMethod &&
-                                (tokenSymbolDataLoading ? (
-                                    <GridItem colSpan={2}><Skeleton height="100%" borderRadius="lg" /></GridItem>
-                                ) :
-                                    paymentMethodOptions.length > 0 && (
-                                        <GridItem colSpan={2}>
-                                            <Select fontSize="sm" variant="filled" borderRadius="lg" onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}>
-                                                {
-                                                    paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
-                                                }
-                                            </Select>
-                                        </GridItem>
-                                    ))
-                            }
-                            <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
-                                <SubscriptionButton
-                                    wagmiConfig={wagmiConfig}
-                                    accessTime={accessTime}
-                                    chainId={chainId}
-                                    paymentMethod={paymentMethod ? paymentMethod : zeroAddress}
-                                    subscriptionText={subscriptionText}
-                                    packageId={packageId}
-                                    onSubscription={onSubscription}
-                                    className={buttonClassName}
-                                    style={buttonStyle}
-                                />
-                            </GridItem>
-                            {
-                                paymentMethod != null && (
-                                    <GridItem colSpan={5}>
-                                        <Box position="relative" fontSize="xs" color="blackAlpha.700">
-                                            <Divider mt={4} mb={2} />
-                                            <AbsoluteCenter bg='white' px='4' whiteSpace="nowrap">
-                                                <Skeleton isLoaded={paymetMethodTotalPayment.amount != ZERO_AMOUNT ? true : false}>
-                                                    Total Payment: {`${formatEther(paymetMethodTotalPayment.amount)} ${paymetMethodTotalPayment.symbol}`}
-                                                </Skeleton>
-                                            </AbsoluteCenter>
-                                        </Box>
-                                    </GridItem>
-                                )
-                            }
-                        </SimpleGrid>
+                        <SubscriptionButton
+                            wagmiConfig={wagmiConfig}
+                            accessTime={accessTime}
+                            chainId={chainId}
+                            subscriptionText={subscriptionText}
+                            packageId={packageId}
+                            onSubscription={onSubscription}
+                            onTimeAmount={(_timeAmount) => {
+                                setTimeAmount(_timeAmount);
+                            }}
+                            className={buttonClassName}
+                            style={buttonStyle}
+                        />
                     </CardFooter>
                 </Card>
             </ThemeProvider>
