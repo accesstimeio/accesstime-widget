@@ -76,13 +76,13 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             return {
                 deployed: contractDetails[0],
                 accessTimeId: contractDetails[1],
-                packageModule: contractDetails[2],
-                extraTimeModule: contractDetails[3],
+                packageModule: contractDetails[3],
+                extraTimeModule: contractDetails[2],
                 name: contractDetails[4],
                 description: contractDetails[5],
                 website: contractDetails[6],
             };
-        }else {
+        } else {
             return {
                 deployed: false,
                 accessTimeId: null,
