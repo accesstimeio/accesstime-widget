@@ -22,10 +22,11 @@ import {
     zeroAddress,
     zeroHash
 } from "viem";
-import { Config, useReadContract, useReadContracts, WagmiProvider } from "wagmi";
+import { Config, useReadContract, useReadContracts, useTransactionReceipt, WagmiProvider } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainCurrencyName } from "../helpers";
+import { useTokenAllowance } from "../hooks/useTokenAllowance";
 
 export interface SubscriptionButtonProps {
     wagmiConfig: Config;
@@ -61,6 +62,16 @@ export const SubscriptionButton = ({
     const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
     const [subscribeLoading, setSubscribeLoading] = useState<boolean>(false);
+
+    const { approveRequired, approveLoading, approve, updateConfig: updateApproveConfig, refetch: approveRefetch } = useTokenAllowance(chainId, accessTime);
+
+    const [subscribeHash, setSubscribeHash] = useState<Hash>(zeroHash);
+    const { data: subscribeReceipt, isSuccess: subscribeReceiptSuccess } = useTransactionReceipt({
+        query: {
+            enabled: subscribeHash != zeroHash ? true : false
+        },
+        hash: subscribeHash
+    })
 
     const buttonText = subscriptionText ? subscriptionText : "Subscribe";
 
@@ -209,11 +220,12 @@ export const SubscriptionButton = ({
                 setSubscribeLoading(false);
                 throw new Error("Contract call failed!");
             }
-            setSubscribeLoading(false);
+            setSubscribeHash(transactionHash);
             if (transactionHash != zeroHash && onSubscription) {
                 onSubscription(transactionHash);
             }
         } else {
+            setSubscribeLoading(false);
             throw new Error("Requested time is invalid!");
         }
     }
@@ -247,6 +259,24 @@ export const SubscriptionButton = ({
             onTimeAmount(timeAmount);
         }
     }, [timeAmount]);
+
+    useEffect(() => {
+        if (paymentMethod != null) {
+            updateApproveConfig(paymentMethod, BigInt(formatEther(paymetMethodTotalPayment.amount)));
+        }
+    }, [paymetMethodTotalPayment, paymentMethod]);
+
+    const refetch = async () => {
+        await approveRefetch();
+        setSubscribeLoading(false);
+        setSubscribeHash(zeroHash);
+    }
+
+    useEffect(() => {
+        if (subscribeHash != zeroHash && subscribeReceipt && subscribeReceiptSuccess) {
+            refetch();
+        }
+    }, [subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
 
     const totalPaymentAmount = formatEther(BigInt(formatEther(paymetMethodTotalPayment.amount)));
     const totalPaymentText = totalPaymentAmount.split(".").length == 1 ? totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
@@ -298,12 +328,19 @@ export const SubscriptionButton = ({
                                                 ))
                                         }
                                         <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
-                                            <Button className={className} style={style} w="full" colorScheme={error ? "red" : "blue"} isLoading={loading || subscribeLoading} disabled={loading || subscribeLoading || error} onClick={subscribeRouter}>
+                                            <Button
+                                                className={className}
+                                                style={style}
+                                                w="full"
+                                                colorScheme={error ? "red" : approveRequired.status == true ? "yellow" : "blue"}
+                                                isLoading={loading || subscribeLoading || approveLoading}
+                                                disabled={loading || subscribeLoading || approveLoading || error}
+                                                onClick={approveRequired.status ? approve : subscribeRouter}>
                                                 {
                                                     error ?
                                                         "Error occurred!"
                                                         :
-                                                        buttonText
+                                                        approveRequired.status ? "Approve" : buttonText
                                                 }
                                             </Button>
                                         </GridItem>
