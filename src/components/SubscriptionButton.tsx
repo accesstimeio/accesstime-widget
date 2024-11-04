@@ -36,6 +36,8 @@ export interface SubscriptionButtonProps {
     subscriptionText?: string;
     onSubscription?: (transactionHash: Hash) => void;
     onTimeAmount?: (timeAmount: number | null) => void;
+    onConnectWallet?: () => void;
+    onSwitchNetwork?: () => void;
     className?: string;
     style?: React.CSSProperties;
 }
@@ -47,6 +49,8 @@ export const SubscriptionButton = ({
     subscriptionText,
     onSubscription,
     onTimeAmount,
+    onConnectWallet,
+    onSwitchNetwork,
     className,
     style
 }: SubscriptionButtonProps) => {
@@ -63,7 +67,13 @@ export const SubscriptionButton = ({
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
     const [subscribeLoading, setSubscribeLoading] = useState<boolean>(false);
 
-    const { approveRequired, approveLoading, approve, updateConfig: updateApproveConfig, refetch: approveRefetch } = useTokenAllowance(chainId, accessTime);
+    const {
+        approveRequired,
+        approveLoading,
+        approve,
+        updateConfig: updateApproveConfig,
+        refetch: approveRefetch
+    } = useTokenAllowance(chainId, accessTime);
 
     const [subscribeHash, setSubscribeHash] = useState<Hash>(zeroHash);
     const { data: subscribeReceipt, isSuccess: subscribeReceiptSuccess } = useTransactionReceipt({
@@ -77,7 +87,11 @@ export const SubscriptionButton = ({
 
     const isPackageExist = useMemo(() => {
         let isExist = false;
-        if (packageId && (contractDetails.deployed && contractDetails.packageModule) && (contractAPIDetails && contractAPIDetails.packages)) {
+        if (
+            packageId &&
+            (contractDetails.deployed && contractDetails.packageModule) &&
+            (contractAPIDetails && contractAPIDetails.packages)
+        ) {
             isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
         return isExist;
@@ -108,13 +122,15 @@ export const SubscriptionButton = ({
     const tokenContracts = useMemo(() => {
         if (contractAPIDetails && contractAPIDetails.paymentMethods) {
             const tokenBasicABI = parseAbi(["function symbol() view returns (string)"]);
-            return contractAPIDetails.paymentMethods.filter((paymentMethod) => paymentMethod != zeroAddress).map((paymentMethod) => {
-                return {
-                    abi: tokenBasicABI,
-                    address: getAddress(paymentMethod),
-                    chainId
-                }
-            })
+            return contractAPIDetails.paymentMethods
+                .filter((paymentMethod) => paymentMethod != zeroAddress)
+                .map((paymentMethod) => {
+                    return {
+                        abi: tokenBasicABI,
+                        address: getAddress(paymentMethod),
+                        chainId
+                    }
+                })
         }
         return [];
     }, [contractAPIDetails])
@@ -139,9 +155,13 @@ export const SubscriptionButton = ({
         if (contractAPIDetails && contractAPIDetails.paymentMethods) {
             let paymentMethodTokenIndex = 0;
             return contractAPIDetails.paymentMethods.map((paymentMethod) => {
-                const tokenSymbol = (tokenSymbolDataSuccess && tokenSymbolData[paymentMethodTokenIndex].result == "success") ?
+                const tokenSymbol = (
+                    tokenSymbolDataSuccess &&
+                    tokenSymbolData[paymentMethodTokenIndex].result == "success"
+                ) ?
                     tokenSymbolData[paymentMethodTokenIndex].result as string : "TKN";
-                const text = paymentMethod == zeroAddress ? getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
+                const text = paymentMethod == zeroAddress ?
+                    getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
 
                 if (paymentMethod != zeroAddress) {
                     paymentMethodTokenIndex++;
@@ -181,11 +201,18 @@ export const SubscriptionButton = ({
     })
 
     const paymetMethodTotalPayment = useMemo(() => {
-        if (paymentMethodRateData && paymentMethodRateDataSuccess && paymentMethod != null && paymentMethodOptions.length > 0) {
-            const paymentMethodIndex = paymentMethodOptions.findIndex((paymentMethod_) => paymentMethod_.value.toLowerCase() == paymentMethod.toLowerCase());
+        if (
+            paymentMethodRateData &&
+            paymentMethodRateDataSuccess &&
+            paymentMethod != null &&
+            paymentMethodOptions.length > 0
+        ) {
+            const paymentMethodIndex = paymentMethodOptions
+                .findIndex((paymentMethod_) => paymentMethod_.value.toLowerCase() == paymentMethod.toLowerCase());
 
             if (paymentMethodIndex != -1) {
-                const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ? paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
+                const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ?
+                    paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
                 const desiredTime = timeAmount != null ? timeAmount : ZERO_AMOUNT;
 
                 if (rateAsHour != ZERO_AMOUNT && BigInt(desiredTime) != ZERO_AMOUNT) {
@@ -207,14 +234,25 @@ export const SubscriptionButton = ({
     }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, paymentMethodOptions, timeAmount]);
 
     const subscribeRouter = async () => {
-        if (timeAmount != null && paymentMethod != null && paymetMethodTotalPayment.amount > ZERO_AMOUNT && paymetMethodTotalPayment.calculated == true) {
+        if (
+            timeAmount != null &&
+            paymentMethod != null &&
+            paymetMethodTotalPayment.amount > ZERO_AMOUNT &&
+            paymetMethodTotalPayment.calculated == true
+        ) {
             setSubscribeLoading(true);
             let transactionHash: Hash = zeroHash;
             try {
                 if (packageId) {
-                    transactionHash = await subscribePackage(BigInt(formatEther(paymetMethodTotalPayment.amount)), getAddress(paymentMethod), packageId);
+                    transactionHash = await subscribePackage(
+                        BigInt(formatEther(paymetMethodTotalPayment.amount)),
+                        getAddress(paymentMethod),
+                        packageId
+                    );
                 } else {
-                    transactionHash = await subscribe(BigInt(formatEther(paymetMethodTotalPayment.amount)), getAddress(paymentMethod));
+                    transactionHash = await subscribe(BigInt(formatEther(paymetMethodTotalPayment.amount)),
+                        getAddress(paymentMethod)
+                    );
                 }
             } catch (_err) {
                 setSubscribeLoading(false);
@@ -279,26 +317,56 @@ export const SubscriptionButton = ({
     }, [subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
 
     const totalPaymentAmount = formatEther(BigInt(formatEther(paymetMethodTotalPayment.amount)));
-    const totalPaymentText = totalPaymentAmount.split(".").length == 1 ? totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
-        totalPaymentAmount.split(".")[1].slice(0, 4)
-        :
-        totalPaymentAmount.split(".")[1]);
+    const totalPaymentText = totalPaymentAmount.split(".").length == 1 ?
+        totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
+            totalPaymentAmount.split(".")[1].slice(0, 4) : totalPaymentAmount.split(".")[1]);
 
     return (
         <WagmiProvider config={wagmiConfig}>
             <ThemeProvider>
                 {
                     !walletConnectionDetails.isWalletConnected ?
-                        <Button className={className} style={style} w="full" colorScheme="blue">Connect Wallet</Button>
+                        <Button
+                            className={className}
+                            style={style}
+                            w="full"
+                            colorScheme="blue"
+                            onClick={onConnectWallet}
+                        >
+                            Connect Wallet
+                        </Button>
                         :
                         walletConnectionDetails.isSupportedChain == false ?
-                            <Button className={className} style={style} w="full" colorScheme="gray">Config is invalid!</Button>
+                            <Button
+                                className={className}
+                                style={style}
+                                w="full"
+                                colorScheme="gray"
+                            >
+                                Config is invalid!
+                            </Button>
                             :
                             walletConnectionDetails.isCorrectChainConnected == false ?
-                                <Button className={className} style={style} w="full" colorScheme="yellow">Switch Network</Button>
+                                <Button
+                                    className={className}
+                                    style={style}
+                                    w="full"
+                                    colorScheme="yellow"
+                                    onClick={onSwitchNetwork}
+                                >
+                                    Switch Network
+                                </Button>
                                 :
                                 paymentMethodExist == false ?
-                                    <Button className={className} style={style} w="full" colorScheme="red" disabled>Payment Method not found!</Button>
+                                    <Button
+                                        className={className}
+                                        style={style}
+                                        w="full"
+                                        colorScheme="red"
+                                        disabled
+                                    >
+                                        Payment Method not found!
+                                    </Button>
                                     :
                                     <SimpleGrid columns={5} columnGap="2" w="full">
                                         {
@@ -319,7 +387,12 @@ export const SubscriptionButton = ({
                                             ) :
                                                 paymentMethodOptions.length > 0 && (
                                                     <GridItem colSpan={2}>
-                                                        <Select fontSize="sm" variant="filled" borderRadius="lg" onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}>
+                                                        <Select
+                                                            fontSize="sm"
+                                                            variant="filled"
+                                                            borderRadius="lg"
+                                                            onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}
+                                                        >
                                                             {
                                                                 paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
                                                             }

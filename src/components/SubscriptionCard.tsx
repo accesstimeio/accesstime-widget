@@ -32,6 +32,8 @@ export interface SubscriptionCardProps {
     style?: React.CSSProperties;
     className?: string;
     onSubscription?: (transactionHash: Hash) => void;
+    onConnectWallet?: () => void;
+    onSwitchNetwork?: () => void;
     buttonClassName?: string;
     buttonStyle?: React.CSSProperties;
 }
@@ -48,6 +50,8 @@ export const SubscriptionCard = ({
     style,
     className,
     onSubscription,
+    onConnectWallet,
+    onSwitchNetwork,
     buttonClassName,
     buttonStyle
 }: SubscriptionCardProps) => {
@@ -56,7 +60,11 @@ export const SubscriptionCard = ({
 
     const isPackageExist = useMemo(() => {
         let isExist = false;
-        if (packageId && (contractDetails.deployed && contractDetails.packageModule) && (contractAPIDetails && contractAPIDetails.packages)) {
+        if (
+            packageId &&
+            (contractDetails.deployed && contractDetails.packageModule) &&
+            (contractAPIDetails && contractAPIDetails.packages)
+        ) {
             isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
         return isExist;
@@ -158,7 +166,11 @@ export const SubscriptionCard = ({
         <WagmiProvider config={wagmiConfig}>
             <ThemeProvider>
                 <Card borderRadius="lg" w={270} m={10}>
-                    <CardBody borderTopRadius="lg" backgroundPosition="center" backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}>
+                    <CardBody
+                        borderTopRadius="lg"
+                        backgroundPosition="center"
+                        backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}
+                    >
                         <Box display="flex" flexDirection="column" position="absolute" top="3" left="3">
                             {
                                 packageId && isPackageExist &&
@@ -166,7 +178,13 @@ export const SubscriptionCard = ({
                                     <Skeleton borderRadius="lg" mb="1" height="18px" width="115px" />
                                 ) :
                                     packageDataSuccess && (
-                                        <Badge colorScheme="green" width="fit-content" borderRadius="lg" textTransform="unset" mb="1">
+                                        <Badge
+                                            colorScheme="green"
+                                            width="fit-content"
+                                            borderRadius="lg"
+                                            textTransform="unset"
+                                            mb="1"
+                                        >
                                             Package: {packageTimeHumanized}
                                         </Badge>
                                     )
@@ -175,12 +193,26 @@ export const SubscriptionCard = ({
                                 extraTimeDataLoading ? (
                                     <Skeleton borderRadius="lg" mb="1" height="18px" width="85px" />
                                 ) : availableExtraTime != null && (
-                                    <Badge colorScheme="purple" width="fit-content" borderRadius="lg" textTransform="unset" mb="1">
+                                    <Badge
+                                        colorScheme="purple"
+                                        width="fit-content"
+                                        borderRadius="lg"
+                                        textTransform="unset"
+                                        mb="1"
+                                    >
                                         ExtraTime: {extraTimeHumanized}
                                     </Badge>
                                 )
                             }
-                            <Badge display="flex" alignItems="center" colorScheme="gray" width="fit-content" fontSize="10" borderRadius="lg" textTransform="unset">
+                            <Badge
+                                display="flex"
+                                alignItems="center"
+                                colorScheme="gray"
+                                width="fit-content"
+                                fontSize="10"
+                                borderRadius="lg"
+                                textTransform="unset"
+                            >
                                 {getChainName(chainId)}
                             </Badge>
                         </Box>
@@ -205,6 +237,8 @@ export const SubscriptionCard = ({
                             onTimeAmount={(_timeAmount) => {
                                 setTimeAmount(_timeAmount);
                             }}
+                            onConnectWallet={onConnectWallet}
+                            onSwitchNetwork={onSwitchNetwork}
                             className={buttonClassName}
                             style={buttonStyle}
                         />

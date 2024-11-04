@@ -21,7 +21,7 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
     const [tokenAddress, setTokenAddress] = useState<Address>(zeroAddress);
     const [desiredAmount, setDesiredAmount] = useState<bigint>(ZERO_AMOUNT);
     const [approveLoading, setApproveLoading] = useState<boolean>(false);
-    
+
     const [approveHash, setApproveHash] = useState<Hash>(zeroHash);
     const { data: approveReceipt, isSuccess: approveReceiptSuccess } = useTransactionReceipt({
         query: {
