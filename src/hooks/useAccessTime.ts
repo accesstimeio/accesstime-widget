@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import { Address, Hash } from "viem";
+import { Address, Hash, zeroAddress } from "viem";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import { getProject, ProjectResponseDto } from "../services/api";
 import { isSupportedChainId } from "../helpers";
-import { ACCESTIME_ABI, FACTORY_ABI, FACTORY_ADDRESS } from "../config";
+import { ACCESTIME_ABI, FACTORY_ABI, FACTORY_ADDRESS, ZERO_AMOUNT } from "../config";
 
 interface useAccessTimeReturnType {
     loading: boolean;
@@ -128,7 +128,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         if (contractDetailsFormatted.packageModule == true) {
             throw new Error("Package module is active!");
         }
-        if (!contractAPIDetails.paymentMethods?.includes(paymentToken)) {
+        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase())) {
             throw new Error("Payment method is not exist!");
         }
 
@@ -137,6 +137,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             address: accessTime,
             functionName: "purchase",
             args: [amount, paymentToken],
+            value: paymentToken == zeroAddress ? amount : ZERO_AMOUNT,
             account: address,
             chain
         })
@@ -158,7 +159,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         if (!contractAPIDetails.packages?.includes(packageId)) {
             throw new Error("Package is not active!");
         }
-        if (!contractAPIDetails.paymentMethods?.includes(paymentToken)) {
+        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase())) {
             throw new Error("Payment method is not exist!");
         }
 
@@ -167,6 +168,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             address: accessTime,
             functionName: "purchasePackage",
             args: [amount, paymentToken, BigInt(packageId)],
+            value: paymentToken == zeroAddress ? amount : ZERO_AMOUNT,
             account: address,
             chain
         })

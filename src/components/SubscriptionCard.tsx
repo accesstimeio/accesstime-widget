@@ -9,7 +9,7 @@ import {
     Skeleton,
 } from "@chakra-ui/react"
 import { IconType } from "react-icons";
-import { SubscriptionButton } from "./SubscriptionButton";
+import { SubscriptionButton } from "./index";
 import { useMemo, useState } from "react";
 import { Address, Hash } from "viem";
 import { Config, State, useReadContract, useReadContracts } from "wagmi";
@@ -17,7 +17,6 @@ import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainName } from "../helpers";
 import { useAccessTime } from "../hooks";
 import { DateTime } from "luxon";
-import { AccessTimeProvider } from "../providers/AccessTimeProvider";
 
 export interface SubscriptionCardProps {
     wagmiConfig: Config;
@@ -165,7 +164,7 @@ export const SubscriptionCard = ({
     }, [availableExtraTime]);
 
     return (
-        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+        <>
             <Card borderRadius="lg" w={270} m={10}>
                 <CardBody
                     borderTopRadius="lg"
@@ -230,6 +229,7 @@ export const SubscriptionCard = ({
                 <CardFooter>
                     <SubscriptionButton
                         wagmiConfig={wagmiConfig}
+                        wagmiState={wagmiState}
                         accessTime={accessTime}
                         chainId={chainId}
                         subscriptionText={subscriptionText}
@@ -245,6 +245,6 @@ export const SubscriptionCard = ({
                     />
                 </CardFooter>
             </Card>
-        </AccessTimeProvider>
+        </>
     );
 }

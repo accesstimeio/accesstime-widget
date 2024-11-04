@@ -21,15 +21,12 @@ import {
     zeroAddress,
     zeroHash
 } from "viem";
-import { Config, State, useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
+import { useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainCurrencyName } from "../helpers";
-import { AccessTimeProvider } from "../providers/AccessTimeProvider";
 
 export interface SubscriptionButtonProps {
-    wagmiConfig: Config;
-    wagmiState?: State;
     chainId: number;
     accessTime: Address;
     packageId?: string;
@@ -42,8 +39,6 @@ export interface SubscriptionButtonProps {
     style?: React.CSSProperties;
 }
 export const SubscriptionButton = ({
-    wagmiConfig,
-    wagmiState,
     chainId,
     accessTime,
     packageId,
@@ -323,7 +318,7 @@ export const SubscriptionButton = ({
             totalPaymentAmount.split(".")[1].slice(0, 4) : totalPaymentAmount.split(".")[1]);
 
     return (
-        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+        <>
             {
                 !walletConnectionDetails.isWalletConnected ?
                     <Button
@@ -433,6 +428,6 @@ export const SubscriptionButton = ({
                                     }
                                 </SimpleGrid>
             }
-        </AccessTimeProvider>
+        </>
     );
 }
