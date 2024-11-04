@@ -8,19 +8,20 @@ import {
     Icon,
     Skeleton,
 } from "@chakra-ui/react"
-import { ThemeProvider } from "../providers/ThemeProvider";
 import { IconType } from "react-icons";
 import { SubscriptionButton } from "./SubscriptionButton";
 import { useMemo, useState } from "react";
 import { Address, Hash } from "viem";
-import { Config, useReadContract, useReadContracts, WagmiProvider } from "wagmi";
+import { Config, State, useReadContract, useReadContracts } from "wagmi";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainName } from "../helpers";
 import { useAccessTime } from "../hooks";
 import { DateTime } from "luxon";
+import { AccessTimeProvider } from "../providers/AccessTimeProvider";
 
 export interface SubscriptionCardProps {
     wagmiConfig: Config;
+    wagmiState?: State;
     chainId: number;
     accessTime: Address;
     cardBodyType: "backgroundImage" | "react-icons" | "child-component";
@@ -39,6 +40,7 @@ export interface SubscriptionCardProps {
 }
 export const SubscriptionCard = ({
     wagmiConfig,
+    wagmiState,
     chainId,
     accessTime,
     cardBodyType,
@@ -163,88 +165,86 @@ export const SubscriptionCard = ({
     }, [availableExtraTime]);
 
     return (
-        <WagmiProvider config={wagmiConfig}>
-            <ThemeProvider>
-                <Card borderRadius="lg" w={270} m={10}>
-                    <CardBody
-                        borderTopRadius="lg"
-                        backgroundPosition="center"
-                        backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}
-                    >
-                        <Box display="flex" flexDirection="column" position="absolute" top="3" left="3">
-                            {
-                                packageId && isPackageExist &&
-                                    packageDataLoading ? (
-                                    <Skeleton borderRadius="lg" mb="1" height="18px" width="115px" />
-                                ) :
-                                    packageDataSuccess && (
-                                        <Badge
-                                            colorScheme="green"
-                                            width="fit-content"
-                                            borderRadius="lg"
-                                            textTransform="unset"
-                                            mb="1"
-                                        >
-                                            Package: {packageTimeHumanized}
-                                        </Badge>
-                                    )
-                            }
-                            {
-                                extraTimeDataLoading ? (
-                                    <Skeleton borderRadius="lg" mb="1" height="18px" width="85px" />
-                                ) : availableExtraTime != null && (
+        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+            <Card borderRadius="lg" w={270} m={10}>
+                <CardBody
+                    borderTopRadius="lg"
+                    backgroundPosition="center"
+                    backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}
+                >
+                    <Box display="flex" flexDirection="column" position="absolute" top="3" left="3">
+                        {
+                            packageId && isPackageExist &&
+                                packageDataLoading ? (
+                                <Skeleton borderRadius="lg" mb="1" height="18px" width="115px" />
+                            ) :
+                                packageDataSuccess && (
                                     <Badge
-                                        colorScheme="purple"
+                                        colorScheme="green"
                                         width="fit-content"
                                         borderRadius="lg"
                                         textTransform="unset"
                                         mb="1"
                                     >
-                                        ExtraTime: {extraTimeHumanized}
+                                        Package: {packageTimeHumanized}
                                     </Badge>
                                 )
+                        }
+                        {
+                            extraTimeDataLoading ? (
+                                <Skeleton borderRadius="lg" mb="1" height="18px" width="85px" />
+                            ) : availableExtraTime != null && (
+                                <Badge
+                                    colorScheme="purple"
+                                    width="fit-content"
+                                    borderRadius="lg"
+                                    textTransform="unset"
+                                    mb="1"
+                                >
+                                    ExtraTime: {extraTimeHumanized}
+                                </Badge>
+                            )
+                        }
+                        <Badge
+                            display="flex"
+                            alignItems="center"
+                            colorScheme="gray"
+                            width="fit-content"
+                            fontSize="10"
+                            borderRadius="lg"
+                            textTransform="unset"
+                        >
+                            {getChainName(chainId)}
+                        </Badge>
+                    </Box>
+                    <Box position="relative" minH={180} w="full">
+                        <AbsoluteCenter className={className} style={style}>
+                            {
+                                cardBodyType == "child-component" ?
+                                    children :
+                                    cardBodyType == "react-icons" && <Icon as={icon} boxSize={24} />
                             }
-                            <Badge
-                                display="flex"
-                                alignItems="center"
-                                colorScheme="gray"
-                                width="fit-content"
-                                fontSize="10"
-                                borderRadius="lg"
-                                textTransform="unset"
-                            >
-                                {getChainName(chainId)}
-                            </Badge>
-                        </Box>
-                        <Box position="relative" minH={180} w="full">
-                            <AbsoluteCenter className={className} style={style}>
-                                {
-                                    cardBodyType == "child-component" ?
-                                        children :
-                                        cardBodyType == "react-icons" && <Icon as={icon} boxSize={24} />
-                                }
-                            </AbsoluteCenter>
-                        </Box>
-                    </CardBody>
-                    <CardFooter>
-                        <SubscriptionButton
-                            wagmiConfig={wagmiConfig}
-                            accessTime={accessTime}
-                            chainId={chainId}
-                            subscriptionText={subscriptionText}
-                            packageId={packageId}
-                            onSubscription={onSubscription}
-                            onTimeAmount={(_timeAmount) => {
-                                setTimeAmount(_timeAmount);
-                            }}
-                            onConnectWallet={onConnectWallet}
-                            onSwitchNetwork={onSwitchNetwork}
-                            className={buttonClassName}
-                            style={buttonStyle}
-                        />
-                    </CardFooter>
-                </Card>
-            </ThemeProvider>
-        </WagmiProvider>
+                        </AbsoluteCenter>
+                    </Box>
+                </CardBody>
+                <CardFooter>
+                    <SubscriptionButton
+                        wagmiConfig={wagmiConfig}
+                        accessTime={accessTime}
+                        chainId={chainId}
+                        subscriptionText={subscriptionText}
+                        packageId={packageId}
+                        onSubscription={onSubscription}
+                        onTimeAmount={(_timeAmount) => {
+                            setTimeAmount(_timeAmount);
+                        }}
+                        onConnectWallet={onConnectWallet}
+                        onSwitchNetwork={onSwitchNetwork}
+                        className={buttonClassName}
+                        style={buttonStyle}
+                    />
+                </CardFooter>
+            </Card>
+        </AccessTimeProvider>
     );
 }

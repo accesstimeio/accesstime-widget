@@ -10,8 +10,7 @@ import {
     SimpleGrid,
     Skeleton
 } from "@chakra-ui/react"
-import { ThemeProvider } from "../providers/ThemeProvider"
-import { useAccessTime } from "../hooks";
+import { useAccessTime, useTokenAllowance } from "../hooks";
 import {
     Address,
     formatEther,
@@ -22,14 +21,15 @@ import {
     zeroAddress,
     zeroHash
 } from "viem";
-import { Config, useReadContract, useReadContracts, useTransactionReceipt, WagmiProvider } from "wagmi";
+import { Config, State, useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainCurrencyName } from "../helpers";
-import { useTokenAllowance } from "../hooks/useTokenAllowance";
+import { AccessTimeProvider } from "../providers/AccessTimeProvider";
 
 export interface SubscriptionButtonProps {
     wagmiConfig: Config;
+    wagmiState?: State;
     chainId: number;
     accessTime: Address;
     packageId?: string;
@@ -43,6 +43,7 @@ export interface SubscriptionButtonProps {
 }
 export const SubscriptionButton = ({
     wagmiConfig,
+    wagmiState,
     chainId,
     accessTime,
     packageId,
@@ -322,118 +323,116 @@ export const SubscriptionButton = ({
             totalPaymentAmount.split(".")[1].slice(0, 4) : totalPaymentAmount.split(".")[1]);
 
     return (
-        <WagmiProvider config={wagmiConfig}>
-            <ThemeProvider>
-                {
-                    !walletConnectionDetails.isWalletConnected ?
+        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+            {
+                !walletConnectionDetails.isWalletConnected ?
+                    <Button
+                        className={className}
+                        style={style}
+                        w="full"
+                        colorScheme="blue"
+                        onClick={onConnectWallet}
+                    >
+                        Connect Wallet
+                    </Button>
+                    :
+                    walletConnectionDetails.isSupportedChain == false ?
                         <Button
                             className={className}
                             style={style}
                             w="full"
-                            colorScheme="blue"
-                            onClick={onConnectWallet}
+                            colorScheme="gray"
                         >
-                            Connect Wallet
+                            Config is invalid!
                         </Button>
                         :
-                        walletConnectionDetails.isSupportedChain == false ?
+                        walletConnectionDetails.isCorrectChainConnected == false ?
                             <Button
                                 className={className}
                                 style={style}
                                 w="full"
-                                colorScheme="gray"
+                                colorScheme="yellow"
+                                onClick={onSwitchNetwork}
                             >
-                                Config is invalid!
+                                Switch Network
                             </Button>
                             :
-                            walletConnectionDetails.isCorrectChainConnected == false ?
+                            paymentMethodExist == false ?
                                 <Button
                                     className={className}
                                     style={style}
                                     w="full"
-                                    colorScheme="yellow"
-                                    onClick={onSwitchNetwork}
+                                    colorScheme="red"
+                                    disabled
                                 >
-                                    Switch Network
+                                    Payment Method not found!
                                 </Button>
                                 :
-                                paymentMethodExist == false ?
-                                    <Button
-                                        className={className}
-                                        style={style}
-                                        w="full"
-                                        colorScheme="red"
-                                        disabled
-                                    >
-                                        Payment Method not found!
-                                    </Button>
-                                    :
-                                    <SimpleGrid columns={5} columnGap="2" w="full">
-                                        {
-                                            contractDetails.packageModule == false && (
-                                                <GridItem mb={2} colSpan={5}>
-                                                    <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
-                                                        !isNaN(Number(e)) && setTimeAmount(Number(e))
-                                                    }}>
-                                                        <NumberInputField />
-                                                    </NumberInput>
+                                <SimpleGrid columns={5} columnGap="2" w="full">
+                                    {
+                                        contractDetails.packageModule == false && (
+                                            <GridItem mb={2} colSpan={5}>
+                                                <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
+                                                    !isNaN(Number(e)) && setTimeAmount(Number(e))
+                                                }}>
+                                                    <NumberInputField />
+                                                </NumberInput>
+                                            </GridItem>
+                                        )
+                                    }
+                                    {
+                                        multiplePaymentMethod &&
+                                        (tokenSymbolDataLoading ? (
+                                            <GridItem colSpan={2}><Skeleton height="100%" borderRadius="lg" /></GridItem>
+                                        ) :
+                                            paymentMethodOptions.length > 0 && (
+                                                <GridItem colSpan={2}>
+                                                    <Select
+                                                        fontSize="sm"
+                                                        variant="filled"
+                                                        borderRadius="lg"
+                                                        onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}
+                                                    >
+                                                        {
+                                                            paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
+                                                        }
+                                                    </Select>
                                                 </GridItem>
-                                            )
-                                        }
-                                        {
-                                            multiplePaymentMethod &&
-                                            (tokenSymbolDataLoading ? (
-                                                <GridItem colSpan={2}><Skeleton height="100%" borderRadius="lg" /></GridItem>
-                                            ) :
-                                                paymentMethodOptions.length > 0 && (
-                                                    <GridItem colSpan={2}>
-                                                        <Select
-                                                            fontSize="sm"
-                                                            variant="filled"
-                                                            borderRadius="lg"
-                                                            onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}
-                                                        >
-                                                            {
-                                                                paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
-                                                            }
-                                                        </Select>
-                                                    </GridItem>
-                                                ))
-                                        }
-                                        <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
-                                            <Button
-                                                className={className}
-                                                style={style}
-                                                w="full"
-                                                colorScheme={error ? "red" : approveRequired.status == true ? "yellow" : "blue"}
-                                                isLoading={loading || subscribeLoading || approveLoading}
-                                                disabled={loading || subscribeLoading || approveLoading || error}
-                                                onClick={approveRequired.status ? approve : subscribeRouter}>
-                                                {
-                                                    error ?
-                                                        "Error occurred!"
-                                                        :
-                                                        approveRequired.status ? "Approve" : buttonText
-                                                }
-                                            </Button>
-                                        </GridItem>
-                                        {
-                                            paymentMethod != null && (
-                                                <GridItem colSpan={5}>
-                                                    <Box position="relative" fontSize="xs" color="blackAlpha.700">
-                                                        <Divider mt={4} mb={2} />
-                                                        <AbsoluteCenter bg='white' px='4' whiteSpace="nowrap">
-                                                            <Skeleton isLoaded={paymetMethodTotalPayment.calculated}>
-                                                                Total Payment: {`${totalPaymentText} ${paymetMethodTotalPayment.symbol}`}
-                                                            </Skeleton>
-                                                        </AbsoluteCenter>
-                                                    </Box>
-                                                </GridItem>
-                                            )
-                                        }
-                                    </SimpleGrid>
-                }
-            </ThemeProvider>
-        </WagmiProvider>
+                                            ))
+                                    }
+                                    <GridItem colSpan={multiplePaymentMethod ? 3 : 5}>
+                                        <Button
+                                            className={className}
+                                            style={style}
+                                            w="full"
+                                            colorScheme={error ? "red" : approveRequired.status == true ? "yellow" : "blue"}
+                                            isLoading={loading || subscribeLoading || approveLoading}
+                                            disabled={loading || subscribeLoading || approveLoading || error}
+                                            onClick={approveRequired.status ? approve : subscribeRouter}>
+                                            {
+                                                error ?
+                                                    "Error occurred!"
+                                                    :
+                                                    approveRequired.status ? "Approve" : buttonText
+                                            }
+                                        </Button>
+                                    </GridItem>
+                                    {
+                                        paymentMethod != null && (
+                                            <GridItem colSpan={5}>
+                                                <Box position="relative" fontSize="xs" color="blackAlpha.700">
+                                                    <Divider mt={4} mb={2} />
+                                                    <AbsoluteCenter bg='white' px='4' whiteSpace="nowrap">
+                                                        <Skeleton isLoaded={paymetMethodTotalPayment.calculated}>
+                                                            Total Payment: {`${totalPaymentText} ${paymetMethodTotalPayment.symbol}`}
+                                                        </Skeleton>
+                                                    </AbsoluteCenter>
+                                                </Box>
+                                            </GridItem>
+                                        )
+                                    }
+                                </SimpleGrid>
+            }
+        </AccessTimeProvider>
     );
 }
