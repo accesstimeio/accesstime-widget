@@ -1,8 +1,12 @@
 {
     "name": "@accesstimeio/accesstime-widget",
     "license": "MIT",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "description": "AccessTime subscription, payment widgets",
+    "author": {
+        "name": "AccessTime",
+        "url": "https://github.com/accesstimeio"
+    },
     "main": "dist/index.js",
     "typings": "dist/index.d.ts",
     "files": [
