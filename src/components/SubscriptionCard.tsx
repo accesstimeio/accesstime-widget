@@ -173,7 +173,7 @@ export const SubscriptionCard = ({
 
     return (
         <>
-            <Card className={classNames?.card} style={styles?.card} borderRadius="lg" w={270} m={10}>
+            <Card className={classNames?.card} style={styles?.card} borderRadius="lg" w={270}>
                 <CardBody
                     className={classNames?.cardBody}
                     style={styles?.cardBody}
