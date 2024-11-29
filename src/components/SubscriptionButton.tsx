@@ -8,7 +8,8 @@ import {
     NumberInputField,
     Select,
     SimpleGrid,
-    Skeleton
+    Skeleton,
+    Text
 } from "@chakra-ui/react"
 import { useAccessTime, useTokenAllowance } from "../hooks";
 import {
@@ -25,6 +26,7 @@ import { useReadContract, useReadContracts, useTransactionReceipt } from "wagmi"
 import { useEffect, useMemo, useState } from "react";
 import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainCurrencyName } from "../helpers";
+import { DateTime } from "luxon";
 
 export interface SubscriptionButtonProps {
     chainId: number;
@@ -271,6 +273,16 @@ export const SubscriptionButton = ({
         return true; // due to loading
     }, [contractAPIDetails]);
 
+    const timeAmountHumanized = useMemo(() => {
+        if (timeAmount != null) {
+            const dateNow = DateTime.now();
+            const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + timeAmount);
+
+            return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
+        }
+        return "-";
+    }, [timeAmount]);
+
     useEffect(() => {
         if (paymentMethodOptions.length > 0 && paymentMethod == null) {
             setPaymentMethod(getAddress(paymentMethodOptions[0].value));
@@ -367,6 +379,7 @@ export const SubscriptionButton = ({
                                     {
                                         contractDetails.packageModule == false && (
                                             <GridItem mb={2} colSpan={5}>
+                                                {timeAmount != null && <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
                                                 <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
                                                     !isNaN(Number(e)) && setTimeAmount(Number(e))
                                                 }}>

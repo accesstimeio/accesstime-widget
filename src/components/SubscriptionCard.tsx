@@ -29,13 +29,23 @@ export interface SubscriptionCardProps {
     children?: React.ReactNode;
     backgroundImage?: string;
     icon?: IconType;
-    style?: React.CSSProperties;
-    className?: string;
+    styles?: {
+        card?: React.CSSProperties;
+        cardBody?: React.CSSProperties;
+        cardFooter?: React.CSSProperties;
+        cardBox?: React.CSSProperties;
+        button?: React.CSSProperties;
+    };
+    classNames?: {
+        card?: string;
+        cardBody?: string;
+        cardFooter?: string;
+        cardBox?: string;
+        button?: string;
+    };
     onSubscription?: (transactionHash: Hash) => void;
     onConnectWallet?: () => void;
     onSwitchNetwork?: () => void;
-    buttonClassName?: string;
-    buttonStyle?: React.CSSProperties;
 }
 export const SubscriptionCard = ({
     wagmiConfig,
@@ -48,13 +58,11 @@ export const SubscriptionCard = ({
     children,
     backgroundImage,
     icon,
-    style,
-    className,
+    styles,
+    classNames,
     onSubscription,
     onConnectWallet,
-    onSwitchNetwork,
-    buttonClassName,
-    buttonStyle
+    onSwitchNetwork
 }: SubscriptionCardProps) => {
     const { contractDetails, contractAPIDetails } = useAccessTime(chainId, accessTime);
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
@@ -165,8 +173,10 @@ export const SubscriptionCard = ({
 
     return (
         <>
-            <Card borderRadius="lg" w={270} m={10}>
+            <Card className={classNames?.card} style={styles?.card} borderRadius="lg" w={270} m={10}>
                 <CardBody
+                    className={classNames?.cardBody}
+                    style={styles?.cardBody}
                     borderTopRadius="lg"
                     backgroundPosition="center"
                     backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}
@@ -179,6 +189,7 @@ export const SubscriptionCard = ({
                             ) :
                                 packageDataSuccess && (
                                     <Badge
+                                        whiteSpace="normal"
                                         colorScheme="green"
                                         width="fit-content"
                                         borderRadius="lg"
@@ -194,6 +205,7 @@ export const SubscriptionCard = ({
                                 <Skeleton borderRadius="lg" mb="1" height="18px" width="85px" />
                             ) : availableExtraTime != null && (
                                 <Badge
+                                    whiteSpace="normal"
                                     colorScheme="purple"
                                     width="fit-content"
                                     borderRadius="lg"
@@ -217,7 +229,7 @@ export const SubscriptionCard = ({
                         </Badge>
                     </Box>
                     <Box position="relative" minH={180} w="full">
-                        <AbsoluteCenter className={className} style={style}>
+                        <AbsoluteCenter className={classNames?.cardBox} style={styles?.cardBox}>
                             {
                                 cardBodyType == "child-component" ?
                                     children :
@@ -226,8 +238,10 @@ export const SubscriptionCard = ({
                         </AbsoluteCenter>
                     </Box>
                 </CardBody>
-                <CardFooter>
+                <CardFooter className={classNames?.cardFooter} style={styles?.cardFooter}>
                     <SubscriptionButton
+                        className={classNames?.button}
+                        style={styles?.button}
                         wagmiConfig={wagmiConfig}
                         wagmiState={wagmiState}
                         accessTime={accessTime}
@@ -240,8 +254,6 @@ export const SubscriptionCard = ({
                         }}
                         onConnectWallet={onConnectWallet}
                         onSwitchNetwork={onSwitchNetwork}
-                        className={buttonClassName}
-                        style={buttonStyle}
                     />
                 </CardFooter>
             </Card>
