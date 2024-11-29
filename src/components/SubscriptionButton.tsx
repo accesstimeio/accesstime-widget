@@ -28,29 +28,34 @@ import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainCurrencyName } from "../helpers";
 import { DateTime } from "luxon";
 
+export interface ButtonConfig {
+    text?: string;
+    showTimeInformation?: boolean;
+}
+
 export interface SubscriptionButtonProps {
     chainId: number;
     accessTime: Address;
     packageId?: string;
-    subscriptionText?: string;
+    config?: ButtonConfig;
+    className?: string;
+    style?: React.CSSProperties;
     onSubscription?: (transactionHash: Hash) => void;
     onTimeAmount?: (timeAmount: number | null) => void;
     onConnectWallet?: () => void;
     onSwitchNetwork?: () => void;
-    className?: string;
-    style?: React.CSSProperties;
 }
 export const SubscriptionButton = ({
     chainId,
     accessTime,
     packageId,
-    subscriptionText,
+    config,
+    className,
+    style,
     onSubscription,
     onTimeAmount,
     onConnectWallet,
-    onSwitchNetwork,
-    className,
-    style
+    onSwitchNetwork
 }: SubscriptionButtonProps) => {
     const {
         walletConnectionDetails,
@@ -81,7 +86,7 @@ export const SubscriptionButton = ({
         hash: subscribeHash
     })
 
-    const buttonText = subscriptionText ? subscriptionText : "Subscribe";
+    const buttonText = (config && config?.text) ? config.text : "Subscribe";
 
     const isPackageExist = useMemo(() => {
         let isExist = false;
@@ -379,7 +384,8 @@ export const SubscriptionButton = ({
                                     {
                                         contractDetails.packageModule == false && (
                                             <GridItem mb={2} colSpan={5}>
-                                                {timeAmount != null && <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
+                                                {(timeAmount != null && config?.showTimeInformation == true) &&
+                                                    <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
                                                 <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
                                                     !isNaN(Number(e)) && setTimeAmount(Number(e))
                                                 }}>

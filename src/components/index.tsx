@@ -19,13 +19,13 @@ export const SubscriptionButton = ({
     chainId,
     accessTime,
     packageId,
-    subscriptionText,
+    config,
+    className,
+    style,
     onSubscription,
     onTimeAmount,
     onConnectWallet,
-    onSwitchNetwork,
-    className,
-    style,
+    onSwitchNetwork
 }: SubscriptionButtonProps) => {
     return (
         <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
@@ -33,13 +33,13 @@ export const SubscriptionButton = ({
                 chainId={chainId}
                 accessTime={accessTime}
                 packageId={packageId}
-                subscriptionText={subscriptionText}
+                config={config}
+                className={className}
+                style={style}
                 onSubscription={onSubscription}
                 onTimeAmount={onTimeAmount}
                 onConnectWallet={onConnectWallet}
                 onSwitchNetwork={onSwitchNetwork}
-                className={className}
-                style={style}
             />
         </AccessTimeProvider>
     )
@@ -50,17 +50,14 @@ export const SubscriptionCard = ({
     wagmiState,
     chainId,
     accessTime,
-    cardBodyType,
-    subscriptionText,
     packageId,
-    children,
-    backgroundImage,
-    icon,
-    styles,
+    config,
     classNames,
+    styles,
+    children,
     onSubscription,
     onConnectWallet,
-    onSwitchNetwork,
+    onSwitchNetwork
 }: SubscriptionCardProps) => {
     return (
         <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
@@ -69,14 +66,11 @@ export const SubscriptionCard = ({
                 wagmiState={wagmiState}
                 chainId={chainId}
                 accessTime={accessTime}
-                cardBodyType={cardBodyType}
-                subscriptionText={subscriptionText}
                 packageId={packageId}
-                children={children}
-                backgroundImage={backgroundImage}
-                icon={icon}
-                styles={styles}
+                config={config}
                 classNames={classNames}
+                styles={styles}
+                children={children}
                 onSubscription={onSubscription}
                 onConnectWallet={onConnectWallet}
                 onSwitchNetwork={onSwitchNetwork}

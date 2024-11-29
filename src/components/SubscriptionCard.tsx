@@ -17,24 +17,23 @@ import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
 import { getChainName } from "../helpers";
 import { useAccessTime } from "../hooks";
 import { DateTime } from "luxon";
+import { ButtonConfig } from "./SubscriptionButton";
+
+interface BoxConfig {
+    type: "backgroundImage" | "react-icons" | "child-component";
+    backgroundImage?: string;
+    icon?: IconType;
+};
 
 export interface SubscriptionCardProps {
     wagmiConfig: Config;
     wagmiState?: State;
     chainId: number;
     accessTime: Address;
-    cardBodyType: "backgroundImage" | "react-icons" | "child-component";
-    subscriptionText?: string;
     packageId?: string;
-    children?: React.ReactNode;
-    backgroundImage?: string;
-    icon?: IconType;
-    styles?: {
-        card?: React.CSSProperties;
-        cardBody?: React.CSSProperties;
-        cardFooter?: React.CSSProperties;
-        cardBox?: React.CSSProperties;
-        button?: React.CSSProperties;
+    config: {
+        box: BoxConfig;
+        button?: ButtonConfig;
     };
     classNames?: {
         card?: string;
@@ -43,6 +42,14 @@ export interface SubscriptionCardProps {
         cardBox?: string;
         button?: string;
     };
+    styles?: {
+        card?: React.CSSProperties;
+        cardBody?: React.CSSProperties;
+        cardFooter?: React.CSSProperties;
+        cardBox?: React.CSSProperties;
+        button?: React.CSSProperties;
+    };
+    children?: React.ReactNode;
     onSubscription?: (transactionHash: Hash) => void;
     onConnectWallet?: () => void;
     onSwitchNetwork?: () => void;
@@ -52,14 +59,11 @@ export const SubscriptionCard = ({
     wagmiState,
     chainId,
     accessTime,
-    cardBodyType,
-    subscriptionText,
     packageId,
-    children,
-    backgroundImage,
-    icon,
-    styles,
+    config,
     classNames,
+    styles,
+    children,
     onSubscription,
     onConnectWallet,
     onSwitchNetwork
@@ -179,7 +183,7 @@ export const SubscriptionCard = ({
                     style={styles?.cardBody}
                     borderTopRadius="lg"
                     backgroundPosition="center"
-                    backgroundImage={cardBodyType == "backgroundImage" ? backgroundImage : undefined}
+                    backgroundImage={config.box.type == "backgroundImage" ? config.box.backgroundImage : undefined}
                 >
                     <Box display="flex" flexDirection="column" position="absolute" top="3" left="3">
                         {
@@ -231,23 +235,23 @@ export const SubscriptionCard = ({
                     <Box position="relative" minH={180} w="full">
                         <AbsoluteCenter className={classNames?.cardBox} style={styles?.cardBox}>
                             {
-                                cardBodyType == "child-component" ?
+                                config.box.type == "child-component" ?
                                     children :
-                                    cardBodyType == "react-icons" && <Icon as={icon} boxSize={24} />
+                                    config.box.type == "react-icons" && <Icon as={config.box.icon} boxSize={24} />
                             }
                         </AbsoluteCenter>
                     </Box>
                 </CardBody>
                 <CardFooter className={classNames?.cardFooter} style={styles?.cardFooter}>
                     <SubscriptionButton
-                        className={classNames?.button}
-                        style={styles?.button}
                         wagmiConfig={wagmiConfig}
                         wagmiState={wagmiState}
                         accessTime={accessTime}
                         chainId={chainId}
-                        subscriptionText={subscriptionText}
                         packageId={packageId}
+                        config={config.button}
+                        className={classNames?.button}
+                        style={styles?.button}
                         onSubscription={onSubscription}
                         onTimeAmount={(_timeAmount) => {
                             setTimeAmount(_timeAmount);
