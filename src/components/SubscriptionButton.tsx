@@ -386,8 +386,8 @@ export const SubscriptionButton = ({
                                             <GridItem mb={2} colSpan={5}>
                                                 {(timeAmount != null && config?.showTimeInformation == true) &&
                                                     <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
-                                                <NumberInput min={1} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
-                                                    !isNaN(Number(e)) && setTimeAmount(Number(e))
+                                                <NumberInput min={1} max={9999999999} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
+                                                    !isNaN(Number(e)) && (Number(e) > 1 && Number(e) < 9999999999) && setTimeAmount(Number(e))
                                                 }}>
                                                     <NumberInputField />
                                                 </NumberInput>

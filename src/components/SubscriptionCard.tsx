@@ -185,7 +185,7 @@ export const SubscriptionCard = ({
                     backgroundPosition="center"
                     backgroundImage={config.box.type == "backgroundImage" ? config.box.backgroundImage : undefined}
                 >
-                    <Box display="flex" flexDirection="column" position="absolute" top="3" left="3">
+                    <Box zIndex={1} display="flex" flexDirection="column" position="absolute" top="3" left="3" mr={3}>
                         {
                             packageId && isPackageExist &&
                                 packageDataLoading ? (
