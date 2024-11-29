@@ -56,13 +56,11 @@ export const SubscriptionCard = ({
     children,
     backgroundImage,
     icon,
-    style,
-    className,
+    styles,
+    classNames,
     onSubscription,
     onConnectWallet,
     onSwitchNetwork,
-    buttonClassName,
-    buttonStyle,
 }: SubscriptionCardProps) => {
     return (
         <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
@@ -77,13 +75,11 @@ export const SubscriptionCard = ({
                 children={children}
                 backgroundImage={backgroundImage}
                 icon={icon}
-                style={style}
-                className={className}
+                styles={styles}
+                classNames={classNames}
                 onSubscription={onSubscription}
                 onConnectWallet={onConnectWallet}
                 onSwitchNetwork={onSwitchNetwork}
-                buttonClassName={buttonClassName}
-                buttonStyle={buttonStyle}
             />
         </AccessTimeProvider>
     )
