@@ -1,21 +1,25 @@
 import { Config, State } from "wagmi";
+import { ColorMode } from "@chakra-ui/react";
+
 import {
     SubscriptionButton as Button,
     SubscriptionButtonProps as ButtonProps
 } from "./SubscriptionButton"
 import {
     SubscriptionCard as Card,
-    SubscriptionCardProps
+    SubscriptionCardProps as CardProps
 } from "./SubscriptionCard"
 import { AccessTimeProvider } from "../providers/AccessTimeProvider";
 
 interface SubscriptionButtonProps extends ButtonProps {
     wagmiConfig: Config;
     wagmiState?: State;
+    colorMode?: ColorMode;
 }
 export const SubscriptionButton = ({
     wagmiConfig,
     wagmiState,
+    colorMode,
     chainId,
     accessTime,
     packageId,
@@ -28,7 +32,7 @@ export const SubscriptionButton = ({
     onSwitchNetwork
 }: SubscriptionButtonProps) => {
     return (
-        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState} colorMode={colorMode}>
             <Button
                 chainId={chainId}
                 accessTime={accessTime}
@@ -45,9 +49,13 @@ export const SubscriptionButton = ({
     )
 }
 
+interface SubscriptionCardProps extends CardProps {
+    colorMode?: ColorMode;
+}
 export const SubscriptionCard = ({
     wagmiConfig,
     wagmiState,
+    colorMode,
     chainId,
     accessTime,
     packageId,
@@ -60,7 +68,7 @@ export const SubscriptionCard = ({
     onSwitchNetwork
 }: SubscriptionCardProps) => {
     return (
-        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
+        <AccessTimeProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState} colorMode={colorMode}>
             <Card
                 wagmiConfig={wagmiConfig}
                 wagmiState={wagmiState}

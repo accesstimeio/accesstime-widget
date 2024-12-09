@@ -2,6 +2,7 @@ import {
     AbsoluteCenter,
     Box,
     Button,
+    Card,
     Divider,
     GridItem,
     NumberInput,
@@ -387,7 +388,7 @@ export const SubscriptionButton = ({
                                                 {(timeAmount != null && config?.showTimeInformation == true) &&
                                                     <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
                                                 <NumberInput min={1} max={9999999999} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
-                                                    !isNaN(Number(e)) && (Number(e) > 1 && Number(e) < 9999999999) && setTimeAmount(Number(e))
+                                                    !isNaN(Number(e)) && Number(e) < 9999999999 && setTimeAmount(Number(e))
                                                 }}>
                                                     <NumberInputField />
                                                 </NumberInput>
@@ -408,7 +409,11 @@ export const SubscriptionButton = ({
                                                         onChange={(e) => { setPaymentMethod(getAddress(e.currentTarget.value)) }}
                                                     >
                                                         {
-                                                            paymentMethodOptions.map((paymentMethod, index) => <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>{paymentMethod.text}</option>)
+                                                            paymentMethodOptions.map((paymentMethod, index) => (
+                                                                <option key={`paymentMethod-${accessTime}-${index}`} value={paymentMethod.value}>
+                                                                    {paymentMethod.text}
+                                                                </option>
+                                                            ))
                                                         }
                                                     </Select>
                                                 </GridItem>
@@ -434,12 +439,14 @@ export const SubscriptionButton = ({
                                     {
                                         paymentMethod != null && (
                                             <GridItem colSpan={5}>
-                                                <Box position="relative" fontSize="xs" color="blackAlpha.700">
+                                                <Box position="relative">
                                                     <Divider mt={4} mb={2} />
-                                                    <AbsoluteCenter bg='white' px='4' whiteSpace="nowrap">
-                                                        <Skeleton isLoaded={paymetMethodTotalPayment.calculated}>
-                                                            Total Payment: {`${totalPaymentText} ${paymetMethodTotalPayment.symbol}`}
-                                                        </Skeleton>
+                                                    <AbsoluteCenter>
+                                                        <Card px='4' whiteSpace="nowrap" boxShadow="none" fontSize="xs">
+                                                            <Skeleton isLoaded={paymetMethodTotalPayment.calculated} opacity="0.7">
+                                                                Total Payment: {`${totalPaymentText} ${paymetMethodTotalPayment.symbol}`}
+                                                            </Skeleton>
+                                                        </Card>
                                                     </AbsoluteCenter>
                                                 </Box>
                                             </GridItem>

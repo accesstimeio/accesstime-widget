@@ -1,7 +1,7 @@
 {
     "name": "@accesstimeio/accesstime-widget",
     "license": "MIT",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "AccessTime subscription, payment widgets",
     "author": {
         "name": "AccessTime",

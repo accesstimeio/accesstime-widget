@@ -1,6 +1,6 @@
-import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { ChakraProvider, ColorMode, ColorModeProvider, extendTheme } from "@chakra-ui/react";
 
-export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+export const ThemeProvider = ({ children, colorMode }: { children: React.ReactNode, colorMode?: ColorMode }) => {
     const theme = extendTheme({
         config: {
             cssVarPrefix: 'accesstime-widget-ck',
@@ -9,7 +9,9 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <ChakraProvider disableGlobalStyle theme={theme}>
-            {children}
+            <ColorModeProvider value={colorMode}>
+                {children}
+            </ColorModeProvider>
         </ChakraProvider>
     );
 }
