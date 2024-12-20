@@ -2,9 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { Address, Hash, zeroAddress } from "viem";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import { getProject, ProjectResponseDto } from "../services/api";
-import { isSupportedChainId } from "../helpers";
-import { ACCESTIME_ABI, FACTORY_ABI, FACTORY_ADDRESS, ZERO_AMOUNT } from "../config";
+import {
+    Contract,
+    DashboardApi,
+    ProjectResponseDto,
+    getFactoryAddress,
+    isSupportedChainId
+} from "@accesstimeio/accesstime-common";
+
+import { ZERO_AMOUNT } from "../config";
 
 interface useAccessTimeReturnType {
     loading: boolean;
@@ -40,6 +46,14 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
     const { isConnected, address, chain, chainId: connectedChainId } = useAccount();
     const { writeContractAsync } = useWriteContract();
 
+    const factoryAddress = useMemo(() => {
+        if (connectedChainId) {
+            return getFactoryAddress(connectedChainId);
+        }
+
+        return zeroAddress;
+    }, [connectedChainId]);
+
     const { walletConnection, walletConnectionDetails } = useMemo(() => {
         const isSupportedChain = isSupportedChainId(chainId);
         const isWalletConnected = (isConnected && address) ? true : false;
@@ -64,23 +78,24 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         query: {
             enabled: walletConnection
         },
-        abi: FACTORY_ABI,
-        address: FACTORY_ADDRESS,
+        abi: Contract.abis.factory,
+        address: factoryAddress,
         functionName: "deploymentDetails",
         args: [accessTime],
         chainId,
     });
 
     const contractDetailsFormatted = useMemo(() => {
-        if (contractDetails && contractDetailsSuccess && contractDetails[0] == true) {
+        const _contractDetails = contractDetails as undefined | [boolean, bigint, boolean, boolean, string, string, string];
+        if (_contractDetails && contractDetailsSuccess && _contractDetails[0] == true) {
             return {
-                deployed: contractDetails[0],
-                accessTimeId: contractDetails[1],
-                packageModule: contractDetails[3],
-                extraTimeModule: contractDetails[2],
-                name: contractDetails[4],
-                description: contractDetails[5],
-                website: contractDetails[6],
+                deployed: _contractDetails[0],
+                accessTimeId: _contractDetails[1],
+                packageModule: _contractDetails[3],
+                extraTimeModule: _contractDetails[2],
+                name: _contractDetails[4],
+                description: _contractDetails[5],
+                website: _contractDetails[6],
             };
         } else {
             return {
@@ -111,7 +126,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             if (contractDetailsFormatted.accessTimeId == null) {
                 throw new Error("AccessTime is invalid!");
             }
-            return await getProject(chainId, Number(contractDetailsFormatted.accessTimeId.toString()));
+            return await DashboardApi.project(chainId, Number(contractDetailsFormatted.accessTimeId.toString()));
         }
     })
 
@@ -128,12 +143,12 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         if (contractDetailsFormatted.packageModule == true) {
             throw new Error("Package module is active!");
         }
-        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase())) {
+        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase() as Address)) {
             throw new Error("Payment method is not exist!");
         }
 
         return await writeContractAsync({
-            abi: ACCESTIME_ABI,
+            abi: Contract.abis.accessTime,
             address: accessTime,
             functionName: "purchase",
             args: [amount, paymentToken],
@@ -159,12 +174,12 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         if (!contractAPIDetails.packages?.includes(packageId)) {
             throw new Error("Package is not active!");
         }
-        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase())) {
+        if (!contractAPIDetails.paymentMethods?.includes(paymentToken.toLowerCase() as Address)) {
             throw new Error("Payment method is not exist!");
         }
 
         return await writeContractAsync({
-            abi: ACCESTIME_ABI,
+            abi: Contract.abis.accessTime,
             address: accessTime,
             functionName: "purchasePackage",
             args: [amount, paymentToken, BigInt(packageId)],

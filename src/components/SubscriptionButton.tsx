@@ -12,7 +12,6 @@ import {
     Skeleton,
     Text
 } from "@chakra-ui/react"
-import { useAccessTime, useTokenAllowance } from "../hooks";
 import {
     Address,
     formatEther,
@@ -25,9 +24,11 @@ import {
 } from "viem";
 import { useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
-import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
-import { getChainCurrencyName } from "../helpers";
 import { DateTime } from "luxon";
+import { Contract, getChainCurrencyName } from "@accesstimeio/accesstime-common";
+
+import { ZERO_AMOUNT } from "../config";
+import { useAccessTime, useTokenAllowance } from "../hooks";
 
 export interface ButtonConfig {
     text?: string;
@@ -109,7 +110,7 @@ export const SubscriptionButton = ({
             enabled: isPackageExist
         },
         address: accessTime,
-        abi: ACCESTIME_ABI,
+        abi: Contract.abis.accessTime,
         functionName: "packages",
         args: [packageId ? BigInt(packageId) : ZERO_AMOUNT],
         chainId
@@ -183,7 +184,7 @@ export const SubscriptionButton = ({
         if (paymentMethodOptions.length > 0) {
             return paymentMethodOptions.map((paymentMethod) => {
                 return {
-                    abi: ACCESTIME_ABI,
+                    abi: Contract.abis.accessTime,
                     address: accessTime,
                     functionName: "tokenRates",
                     args: [getAddress(paymentMethod.value)],
@@ -216,7 +217,7 @@ export const SubscriptionButton = ({
 
             if (paymentMethodIndex != -1) {
                 const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ?
-                    paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
+                    paymentMethodRateData[paymentMethodIndex].result as bigint : ZERO_AMOUNT;
                 const desiredTime = timeAmount != null ? timeAmount : ZERO_AMOUNT;
 
                 if (rateAsHour != ZERO_AMOUNT && BigInt(desiredTime) != ZERO_AMOUNT) {
@@ -298,7 +299,7 @@ export const SubscriptionButton = ({
     useEffect(() => {
         if (packageId) {
             if (packageData && packageDataSuccess) {
-                const packageTimeInSeconds = Number(packageData[0].toString());
+                const packageTimeInSeconds = Number((packageData as [bigint, boolean])[0].toString());
                 setTimeAmount(packageTimeInSeconds);
             }
         } else {

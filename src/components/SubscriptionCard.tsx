@@ -9,15 +9,16 @@ import {
     Skeleton,
 } from "@chakra-ui/react"
 import { IconType } from "react-icons";
-import { SubscriptionButton } from "./index";
 import { useMemo, useState } from "react";
 import { Address, Hash } from "viem";
-import { Config, State, useReadContract, useReadContracts } from "wagmi";
-import { ACCESTIME_ABI, ZERO_AMOUNT } from "../config";
-import { getChainName } from "../helpers";
-import { useAccessTime } from "../hooks";
+import { useReadContract, useReadContracts } from "wagmi";
 import { DateTime } from "luxon";
-import { ButtonConfig } from "./SubscriptionButton";
+import { Contract, getChainName } from "@accesstimeio/accesstime-common";
+
+import { SubscriptionButton, ButtonConfig } from "./SubscriptionButton";
+
+import { ZERO_AMOUNT } from "../config";
+import { useAccessTime } from "../hooks";
 
 interface BoxConfig {
     type: "backgroundImage" | "react-icons" | "child-component";
@@ -26,8 +27,6 @@ interface BoxConfig {
 };
 
 export interface SubscriptionCardProps {
-    wagmiConfig: Config;
-    wagmiState?: State;
     chainId: number;
     accessTime: Address;
     packageId?: string;
@@ -55,8 +54,6 @@ export interface SubscriptionCardProps {
     onSwitchNetwork?: () => void;
 }
 export const SubscriptionCard = ({
-    wagmiConfig,
-    wagmiState,
     chainId,
     accessTime,
     packageId,
@@ -92,7 +89,7 @@ export const SubscriptionCard = ({
             enabled: isPackageExist
         },
         address: accessTime,
-        abi: ACCESTIME_ABI,
+        abi: Contract.abis.accessTime,
         functionName: "packages",
         args: [packageId ? BigInt(packageId) : ZERO_AMOUNT],
         chainId
@@ -100,7 +97,7 @@ export const SubscriptionCard = ({
 
     const packageTimeHumanized = useMemo(() => {
         if (packageData && packageDataSuccess) {
-            const packageTimeInSeconds = Number(packageData[0].toString());
+            const packageTimeInSeconds = Number((packageData as [bigint, boolean])[0].toString());
 
             const dateNow = DateTime.now();
             const datePlusPackageTime = DateTime.fromSeconds(dateNow.toSeconds() + packageTimeInSeconds);
@@ -115,7 +112,7 @@ export const SubscriptionCard = ({
         if (contractAPIDetails && contractAPIDetails.extraTimes) {
             return contractAPIDetails.extraTimes.map((extraTime) => {
                 return {
-                    abi: ACCESTIME_ABI,
+                    abi: Contract.abis.accessTime,
                     address: accessTime,
                     functionName: "extras",
                     args: [BigInt(extraTime)],
@@ -244,8 +241,6 @@ export const SubscriptionCard = ({
                 </CardBody>
                 <CardFooter className={classNames?.cardFooter} style={styles?.cardFooter}>
                     <SubscriptionButton
-                        wagmiConfig={wagmiConfig}
-                        wagmiState={wagmiState}
                         accessTime={accessTime}
                         chainId={chainId}
                         packageId={packageId}

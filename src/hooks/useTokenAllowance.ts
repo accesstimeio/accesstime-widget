@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Address, Hash, parseAbi, zeroAddress, zeroHash } from "viem";
 import { useAccount, useReadContract, useTransactionReceipt, useWriteContract } from "wagmi";
+
 import { ZERO_AMOUNT } from "../config";
 
 interface useTokenAllowanceReturnType {
