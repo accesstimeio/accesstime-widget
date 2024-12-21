@@ -31,12 +31,12 @@ interface useAccessTimeReturnType {
     },
     contractDetails: {
         deployed: boolean,
-        accessTimeId: bigint | null;
-        packageModule: boolean | null;
-        extraTimeModule: boolean | null;
-        name: string | null;
-        description: string | null;
-        website: string | null;
+        accessTimeId?: bigint;
+        packageModule?: boolean;
+        extraTimeModule?: boolean;
+        name?: string;
+        description?: string;
+        website?: string;
     },
     contractAPIDetails?: ProjectResponseDto,
     subscribe: (amount: bigint, paymentToken: Address) => Promise<Hash>,
@@ -47,11 +47,10 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
     const { writeContractAsync } = useWriteContract();
 
     const factoryAddress = useMemo(() => {
-        if (connectedChainId) {
-            return getFactoryAddress(connectedChainId);
+        if (!connectedChainId) {
+            return zeroAddress;
         }
-
-        return zeroAddress;
+        return getFactoryAddress(connectedChainId);
     }, [connectedChainId]);
 
     const { walletConnection, walletConnectionDetails } = useMemo(() => {
@@ -86,28 +85,20 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
     });
 
     const contractDetailsFormatted = useMemo(() => {
-        const _contractDetails = contractDetails as undefined | [boolean, bigint, boolean, boolean, string, string, string];
-        if (_contractDetails && contractDetailsSuccess && _contractDetails[0] == true) {
+        if (!contractDetails || !contractDetailsSuccess || contractDetails[0] != true) {
             return {
-                deployed: _contractDetails[0],
-                accessTimeId: _contractDetails[1],
-                packageModule: _contractDetails[3],
-                extraTimeModule: _contractDetails[2],
-                name: _contractDetails[4],
-                description: _contractDetails[5],
-                website: _contractDetails[6],
-            };
-        } else {
-            return {
-                deployed: false,
-                accessTimeId: null,
-                packageModule: null,
-                extraTimeModule: null,
-                name: null,
-                description: null,
-                website: null,
+                deployed: false
             };
         }
+        return {
+            deployed: contractDetails[0],
+            accessTimeId: contractDetails[1],
+            packageModule: contractDetails[3],
+            extraTimeModule: contractDetails[2],
+            name: contractDetails[4],
+            description: contractDetails[5],
+            website: contractDetails[6],
+        };
     }, [contractDetails, contractDetailsSuccess])
 
     const {
@@ -123,7 +114,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             contractDetailsFormatted.accessTimeId ? contractDetailsFormatted.accessTimeId.toString() : "not-deployed"
         ],
         queryFn: async () => {
-            if (contractDetailsFormatted.accessTimeId == null) {
+            if (!contractDetailsFormatted.accessTimeId) {
                 throw new Error("AccessTime is invalid!");
             }
             return await DashboardApi.project(chainId, Number(contractDetailsFormatted.accessTimeId.toString()));

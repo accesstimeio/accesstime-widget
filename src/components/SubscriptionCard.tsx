@@ -1,3 +1,4 @@
+// @ts-nocheck: added due to deep and possibly infinite on useReadContracts calls
 import {
     AbsoluteCenter,
     Badge,
@@ -96,31 +97,31 @@ export const SubscriptionCard = ({
     })
 
     const packageTimeHumanized = useMemo(() => {
-        if (packageData && packageDataSuccess) {
-            const packageTimeInSeconds = Number((packageData as [bigint, boolean])[0].toString());
-
-            const dateNow = DateTime.now();
-            const datePlusPackageTime = DateTime.fromSeconds(dateNow.toSeconds() + packageTimeInSeconds);
-            setTimeAmount(packageTimeInSeconds);
-
-            return datePlusPackageTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
+        if (!packageData || !packageDataSuccess) {
+            return "-";
         }
-        return "-";
+        const packageTimeInSeconds = Number(packageData[0].toString());
+
+        const dateNow = DateTime.now();
+        const datePlusPackageTime = DateTime.fromSeconds(dateNow.toSeconds() + packageTimeInSeconds);
+        setTimeAmount(packageTimeInSeconds);
+
+        return datePlusPackageTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
     }, [packageData, packageDataSuccess]);
 
-    const extraTimeIds = useMemo(() => {
-        if (contractAPIDetails && contractAPIDetails.extraTimes) {
-            return contractAPIDetails.extraTimes.map((extraTime) => {
-                return {
-                    abi: Contract.abis.accessTime,
-                    address: accessTime,
-                    functionName: "extras",
-                    args: [BigInt(extraTime)],
-                    chainId
-                }
-            })
+    const extraTimeCalls = useMemo(() => {
+        if (!contractAPIDetails || !contractAPIDetails.extraTimes || contractAPIDetails.extraTimes.length == 0) {
+            return [];
         }
-        return [];
+        const requiredAbi = [Contract.abis.accessTime.find((abi) => abi.type == "function" && abi.name == "extras")] as const;
+
+        return contractAPIDetails.extraTimes.map((extraTime) => ({
+            abi: requiredAbi,
+            address: accessTime,
+            functionName: "extras",
+            args: [BigInt(extraTime)],
+            chainId
+        }))
     }, [contractAPIDetails])
 
     const {
@@ -129,47 +130,46 @@ export const SubscriptionCard = ({
         isSuccess: extraTimeDataSuccess
     } = useReadContracts({
         query: {
-            enabled: extraTimeIds.length > 0 ? true : false
+            enabled: extraTimeCalls.length > 0
         },
-        contracts: extraTimeIds
+        contracts: extraTimeCalls
     })
 
     const availableExtraTime: number | null = useMemo(() => {
-        if (extraTimeData && extraTimeDataSuccess && timeAmount != null) {
-            let foundExtraTime: number = 0;
+        if (!extraTimeData || !extraTimeDataSuccess || timeAmount == null) {
+            return null;
+        }
+        let foundExtraTime: number = 0;
 
-            for (let i = 0; i < extraTimeData.length; i++) {
-                const extraTime = extraTimeData[i];
-                if (extraTime.status == "success") {
-                    const [limit, percent, available] = extraTime.result as unknown as [bigint, bigint, boolean];
-                    const limit_ = Number(limit.toString());
-                    const percent_ = Number(percent.toString());
+        for (let i = 0; i < extraTimeData.length; i++) {
+            const extraTime = extraTimeData[i];
+            if (extraTime.status == "success") {
+                const [limit, percent, available] = extraTime.result;
+                const limit_ = Number(limit.toString());
+                const percent_ = Number(percent.toString());
 
-                    const calculatedExtraTime = (timeAmount / 100) * percent_;
-                    if (available && timeAmount >= limit_ && calculatedExtraTime >= foundExtraTime) {
-                        foundExtraTime = calculatedExtraTime;
-                    }
+                const calculatedExtraTime = (timeAmount / 100) * percent_;
+                if (available && timeAmount >= limit_ && calculatedExtraTime >= foundExtraTime) {
+                    foundExtraTime = calculatedExtraTime;
                 }
             }
-
-            if (foundExtraTime == 0) {
-                return null;
-            }
-
-            return foundExtraTime;
         }
 
-        return null;
+        if (foundExtraTime == 0) {
+            return null;
+        }
+
+        return foundExtraTime;
     }, [extraTimeData, extraTimeDataSuccess, timeAmount]);
 
     const extraTimeHumanized = useMemo(() => {
-        if (availableExtraTime != null) {
-            const dateNow = DateTime.now();
-            const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + availableExtraTime);
-
-            return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
+        if (availableExtraTime == null) {
+            return "-";
         }
-        return "-";
+        const dateNow = DateTime.now();
+        const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + availableExtraTime);
+
+        return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
     }, [availableExtraTime]);
 
     return (

@@ -1,3 +1,4 @@
+// @ts-nocheck: added due to deep and possibly infinite on useReadContracts calls
 import {
     AbsoluteCenter,
     Box,
@@ -124,20 +125,19 @@ export const SubscriptionButton = ({
         return isMultiple;
     }, [contractAPIDetails, contractDetails]);
 
-    const tokenContracts = useMemo(() => {
-        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
-            const tokenBasicABI = parseAbi(["function symbol() view returns (string)"]);
-            return contractAPIDetails.paymentMethods
-                .filter((paymentMethod) => paymentMethod != zeroAddress)
-                .map((paymentMethod) => {
-                    return {
-                        abi: tokenBasicABI,
-                        address: getAddress(paymentMethod),
-                        chainId
-                    }
-                })
+    const tokenSymbols = useMemo(() => {
+        if (!contractAPIDetails || !contractAPIDetails.paymentMethods || contractAPIDetails.paymentMethods.length == 0) {
+            return [];
         }
-        return [];
+        const tokenSymbol = parseAbi(["function symbol() view returns (string)"]);
+        return contractAPIDetails.paymentMethods
+            .filter((paymentMethod) => paymentMethod != zeroAddress)
+            .map((paymentMethod) => ({
+                abi: tokenSymbol,
+                address: getAddress(paymentMethod),
+                functionName: "symbol",
+                chainId
+            }))
     }, [contractAPIDetails])
 
     const {
@@ -146,54 +146,49 @@ export const SubscriptionButton = ({
         isSuccess: tokenSymbolDataSuccess
     } = useReadContracts({
         query: {
-            enabled: tokenContracts.length > 0
+            enabled: tokenSymbols.length > 0
         },
-        contracts: tokenContracts.map((tokenContract) => {
-            return {
-                ...tokenContract,
-                functionName: "symbol"
-            }
-        })
+        contracts: tokenSymbols
     })
 
     const paymentMethodOptions: { value: string, text: string }[] = useMemo(() => {
-        if (contractAPIDetails && contractAPIDetails.paymentMethods) {
-            let paymentMethodTokenIndex = 0;
-            return contractAPIDetails.paymentMethods.map((paymentMethod) => {
-                const tokenSymbol = (
-                    tokenSymbolDataSuccess &&
-                    tokenSymbolData[paymentMethodTokenIndex].result == "success"
-                ) ?
-                    tokenSymbolData[paymentMethodTokenIndex].result as string : "TKN";
-                const text = paymentMethod == zeroAddress ?
-                    getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
-
-                if (paymentMethod != zeroAddress) {
-                    paymentMethodTokenIndex++;
-                }
-                return {
-                    value: paymentMethod.toLowerCase(),
-                    text
-                }
-            })
+        if (!contractAPIDetails || !contractAPIDetails.paymentMethods || contractAPIDetails.paymentMethods.length == 0) {
+            return [];
         }
-        return [];
+        let paymentMethodTokenIndex = 0;
+        return contractAPIDetails.paymentMethods.map((paymentMethod) => {
+            const tokenSymbol = (
+                tokenSymbolDataSuccess &&
+                tokenSymbolData[paymentMethodTokenIndex].result == "success"
+            ) ?
+                tokenSymbolData[paymentMethodTokenIndex].result : "TKN";
+            const text = paymentMethod == zeroAddress ?
+                getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
+
+            if (paymentMethod != zeroAddress) {
+                paymentMethodTokenIndex++;
+            }
+            return {
+                value: paymentMethod.toLowerCase(),
+                text
+            }
+        })
     }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess]);
 
     const paymentMethodsRateCalls = useMemo(() => {
-        if (paymentMethodOptions.length > 0) {
-            return paymentMethodOptions.map((paymentMethod) => {
-                return {
-                    abi: Contract.abis.accessTime,
-                    address: accessTime,
-                    functionName: "tokenRates",
-                    args: [getAddress(paymentMethod.value)],
-                    chainId
-                }
-            })
+        if (!paymentMethodOptions || paymentMethodOptions.length == 0) {
+            return [];
         }
-        return [];
-    }, [paymentMethodOptions])
+        const requiredAbi = [Contract.abis.accessTime.find((abi) => abi.type == "function" && abi.name == "tokenRates")] as const;
+
+        return paymentMethodOptions.map((paymentMethod) => ({
+            abi: requiredAbi,
+            address: accessTime,
+            functionName: "tokenRates",
+            args: [getAddress(paymentMethod.value)],
+            chainId
+        }))
+    }, [paymentMethodOptions, chainId])
 
     const {
         data: paymentMethodRateData,
@@ -217,7 +212,7 @@ export const SubscriptionButton = ({
 
             if (paymentMethodIndex != -1) {
                 const rateAsHour = paymentMethodRateData[paymentMethodIndex].status == "success" ?
-                    paymentMethodRateData[paymentMethodIndex].result as bigint : ZERO_AMOUNT;
+                    paymentMethodRateData[paymentMethodIndex].result : ZERO_AMOUNT;
                 const desiredTime = timeAmount != null ? timeAmount : ZERO_AMOUNT;
 
                 if (rateAsHour != ZERO_AMOUNT && BigInt(desiredTime) != ZERO_AMOUNT) {
@@ -281,13 +276,13 @@ export const SubscriptionButton = ({
     }, [contractAPIDetails]);
 
     const timeAmountHumanized = useMemo(() => {
-        if (timeAmount != null) {
-            const dateNow = DateTime.now();
-            const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + timeAmount);
-
-            return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
+        if (timeAmount == null) {
+            return "-";
         }
-        return "-";
+        const dateNow = DateTime.now();
+        const datePlusExtraTime = DateTime.fromSeconds(dateNow.toSeconds() + timeAmount);
+
+        return datePlusExtraTime.diff(dateNow).rescale().toHuman({ listStyle: "long" });
     }, [timeAmount]);
 
     useEffect(() => {
@@ -299,7 +294,7 @@ export const SubscriptionButton = ({
     useEffect(() => {
         if (packageId) {
             if (packageData && packageDataSuccess) {
-                const packageTimeInSeconds = Number((packageData as [bigint, boolean])[0].toString());
+                const packageTimeInSeconds = Number(packageData[0].toString());
                 setTimeAmount(packageTimeInSeconds);
             }
         } else {
