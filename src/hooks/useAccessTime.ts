@@ -47,11 +47,11 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
     const { writeContractAsync } = useWriteContract();
 
     const factoryAddress = useMemo(() => {
-        if (!connectedChainId) {
+        if (!chainId) {
             return zeroAddress;
         }
-        return getFactoryAddress(connectedChainId);
-    }, [connectedChainId]);
+        return getFactoryAddress(chainId);
+    }, [chainId]);
 
     const { walletConnection, walletConnectionDetails } = useMemo(() => {
         const isSupportedChain = isSupportedChainId(chainId);
@@ -75,7 +75,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         isError: contractDetailsError,
     } = useReadContract({
         query: {
-            enabled: walletConnection
+            enabled: walletConnectionDetails.isSupportedChain
         },
         abi: Contract.abis.factory,
         address: factoryAddress,
