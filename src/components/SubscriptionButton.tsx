@@ -1,4 +1,5 @@
 // @ts-nocheck: added due to deep and possibly infinite on useReadContracts calls
+"use client";
 import {
     AbsoluteCenter,
     Box,

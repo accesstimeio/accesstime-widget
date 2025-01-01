@@ -3,8 +3,8 @@
         "src"
     ],
     "compilerOptions": {
-        "target": "es2018",
-        "module": "esnext",
+        "target": "ESNext",
+        "module": "ESNext",
         "jsx": "react-jsx",
         "importHelpers": true,
         "declaration": true,
@@ -15,7 +15,7 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "esModuleInterop": true,
         "resolveJsonModule": true
     }
