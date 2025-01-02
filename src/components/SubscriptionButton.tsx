@@ -234,6 +234,10 @@ export const SubscriptionButton = ({
         };
     }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, paymentMethodOptions, timeAmount]);
 
+    const requiredTotalPayment = useMemo(() => {
+        return paymetMethodTotalPayment.amount / parseEther("1");
+    }, [paymetMethodTotalPayment.amount]);
+
     const subscribeRouter = async () => {
         if (
             timeAmount != null &&
@@ -246,12 +250,12 @@ export const SubscriptionButton = ({
             try {
                 if (packageId) {
                     transactionHash = await subscribePackage(
-                        BigInt(formatEther(paymetMethodTotalPayment.amount)),
+                        requiredTotalPayment,
                         getAddress(paymentMethod),
                         packageId
                     );
                 } else {
-                    transactionHash = await subscribe(BigInt(formatEther(paymetMethodTotalPayment.amount)),
+                    transactionHash = await subscribe(requiredTotalPayment,
                         getAddress(paymentMethod)
                     );
                 }
@@ -311,7 +315,7 @@ export const SubscriptionButton = ({
 
     useEffect(() => {
         if (paymentMethod != null) {
-            updateApproveConfig(paymentMethod, BigInt(formatEther(paymetMethodTotalPayment.amount)));
+            updateApproveConfig(paymentMethod, requiredTotalPayment);
         }
     }, [paymetMethodTotalPayment, paymentMethod]);
 
@@ -327,7 +331,7 @@ export const SubscriptionButton = ({
         }
     }, [subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
 
-    const totalPaymentAmount = formatEther(BigInt(formatEther(paymetMethodTotalPayment.amount)));
+    const totalPaymentAmount = formatEther(requiredTotalPayment);
     const totalPaymentText = totalPaymentAmount.split(".").length == 1 ?
         totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
             totalPaymentAmount.split(".")[1].slice(0, 4) : totalPaymentAmount.split(".")[1]);
