@@ -115,7 +115,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             contractDetailsFormatted.accessTimeId ? contractDetailsFormatted.accessTimeId.toString() : "not-deployed"
         ],
         queryFn: async () => {
-            if (!contractDetailsFormatted.accessTimeId) {
+            if (contractDetailsFormatted?.accessTimeId < BigInt(0)) {
                 throw new Error("AccessTime is invalid!");
             }
             return await DashboardApi.project(chainId, Number(contractDetailsFormatted.accessTimeId.toString()));
