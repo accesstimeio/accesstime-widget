@@ -7,6 +7,6 @@ export default defineConfig({
     clean: true,
     splitting: true,
     treeshake: true,
-    bundle: false,
+    bundle: true,
     external: ['react', 'react-dom'],
 });
