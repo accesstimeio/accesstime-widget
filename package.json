@@ -1,7 +1,7 @@
 {
     "name": "@accesstimeio/accesstime-widget",
     "license": "MIT",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "description": "AccessTime subscription, payment widgets",
     "author": {
         "name": "AccessTime",
@@ -34,7 +34,7 @@
         "react-dom": "^18.3.1"
     },
     "dependencies": {
-        "@accesstimeio/accesstime-common": "^1.0.6",
+        "@accesstimeio/accesstime-common": "^1.2.2",
         "@chakra-ui/react": "^2.10.3",
         "@emotion/react": "^11.13.3",
         "@emotion/styled": "^11.13.0",

@@ -7,6 +7,7 @@ import {
     Contract,
     DashboardApi,
     ProjectResponseDto,
+    SUPPORTED_CHAIN,
     getFactoryAddress,
     isSupportedChainId
 } from "@accesstimeio/accesstime-common";
@@ -51,7 +52,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
         if (!chainId) {
             return zeroAddress;
         }
-        return getFactoryAddress(chainId);
+        return getFactoryAddress(chainId as SUPPORTED_CHAIN);
     }, [chainId]);
 
     const { walletConnection, walletConnectionDetails } = useMemo(() => {
