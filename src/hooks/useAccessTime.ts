@@ -68,7 +68,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
                 isCorrectChainConnected
             }
         };
-    }, [isConnected, address, chainId, connectedChainId])
+    }, [isConnected, address, chainId, connectedChainId]);
 
     const {
         data: contractDetails,

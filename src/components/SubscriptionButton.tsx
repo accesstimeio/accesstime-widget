@@ -160,9 +160,9 @@ export const SubscriptionButton = ({
         return contractAPIDetails.paymentMethods.map((paymentMethod) => {
             const tokenSymbol = (
                 tokenSymbolDataSuccess &&
-                tokenSymbolData[paymentMethodTokenIndex].result == "success"
+                tokenSymbolData[paymentMethodTokenIndex]?.status == "success"
             ) ?
-                tokenSymbolData[paymentMethodTokenIndex].result : "TKN";
+                tokenSymbolData[paymentMethodTokenIndex]?.result : "TKN";
             const text = paymentMethod == zeroAddress ?
                 getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
 
