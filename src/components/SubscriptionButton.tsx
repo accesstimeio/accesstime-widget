@@ -16,7 +16,7 @@ import {
 } from "@chakra-ui/react"
 import {
     Address,
-    formatEther,
+    formatUnits,
     getAddress,
     Hash,
     parseAbi,
@@ -27,7 +27,7 @@ import {
 import { useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
 import { useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
-import { Contract, getChainCurrencyName } from "@accesstimeio/accesstime-common";
+import { Contract, getChainCurrencySymbol, getChainCurrencyDecimals } from "@accesstimeio/accesstime-common";
 
 import { ZERO_AMOUNT } from "../config";
 import { useAccessTime, useTokenAllowance } from "../hooks";
@@ -126,19 +126,33 @@ export const SubscriptionButton = ({
         return isMultiple;
     }, [contractAPIDetails, contractDetails]);
 
-    const tokenSymbols = useMemo(() => {
+    const calls = useMemo(() => {
         if (!contractAPIDetails || !contractAPIDetails.paymentMethods || contractAPIDetails.paymentMethods.length == 0) {
-            return [];
+            return {
+                tokenSymbols: [],
+                tokenDecimals: []
+            };
         }
-        const tokenSymbol = parseAbi(["function symbol() view returns (string)"]);
-        return contractAPIDetails.paymentMethods
-            .filter((paymentMethod) => paymentMethod != zeroAddress)
-            .map((paymentMethod) => ({
-                abi: tokenSymbol,
-                address: getAddress(paymentMethod),
-                functionName: "symbol",
-                chainId
-            }))
+        const symbolAbi = parseAbi(["function symbol() view returns (string)"]);
+        const decimalsAbi = parseAbi(["function decimals() view returns (uint8)"]);
+        return {
+            tokenSymbols: contractAPIDetails.paymentMethods
+                .filter((paymentMethod) => paymentMethod != zeroAddress)
+                .map((paymentMethod) => ({
+                    abi: symbolAbi,
+                    address: getAddress(paymentMethod),
+                    functionName: "symbol",
+                    chainId
+                })),
+            tokenDecimals: contractAPIDetails.paymentMethods
+                .filter((paymentMethod) => paymentMethod != zeroAddress)
+                .map((paymentMethod) => ({
+                    abi: decimalsAbi,
+                    address: getAddress(paymentMethod),
+                    functionName: "decimals",
+                    chainId
+                }))
+        }
     }, [contractAPIDetails])
 
     const {
@@ -147,12 +161,23 @@ export const SubscriptionButton = ({
         isSuccess: tokenSymbolDataSuccess
     } = useReadContracts({
         query: {
-            enabled: tokenSymbols.length > 0
+            enabled: calls.tokenSymbols.length > 0
         },
-        contracts: tokenSymbols
+        contracts: calls.tokenSymbols
     })
 
-    const paymentMethodOptions: { value: string, text: string }[] = useMemo(() => {
+    const {
+        data: tokenDecimalsData,
+        isLoading: tokenDecimalsDataLoading,
+        isSuccess: tokenDecimalsDataSuccess
+    } = useReadContracts({
+        query: {
+            enabled: calls.tokenDecimals.length > 0
+        },
+        contracts: calls.tokenDecimals
+    })
+
+    const paymentMethodOptions: { value: string, text: string, decimals: number }[] = useMemo(() => {
         if (!contractAPIDetails || !contractAPIDetails.paymentMethods || contractAPIDetails.paymentMethods.length == 0) {
             return [];
         }
@@ -163,18 +188,26 @@ export const SubscriptionButton = ({
                 tokenSymbolData[paymentMethodTokenIndex]?.status == "success"
             ) ?
                 tokenSymbolData[paymentMethodTokenIndex]?.result : "TKN";
+            const tokenDecimals = (
+                tokenDecimalsDataSuccess &&
+                tokenDecimalsData[paymentMethodTokenIndex]?.status == "success"
+            ) ?
+                tokenDecimalsData[paymentMethodTokenIndex]?.result : 18;
             const text = paymentMethod == zeroAddress ?
-                getChainCurrencyName(chainId) : tokenSymbol ? tokenSymbol : "-";
+                getChainCurrencySymbol(chainId) : tokenSymbol ? tokenSymbol : "-";
+            const decimals = paymentMethod == zeroAddress ?
+                getChainCurrencyDecimals(chainId) : tokenDecimals ? tokenDecimals : 18;
 
             if (paymentMethod != zeroAddress) {
                 paymentMethodTokenIndex++;
             }
             return {
                 value: paymentMethod.toLowerCase(),
-                text
+                text,
+                decimals
             }
         })
-    }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess]);
+    }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess, tokenDecimalsData, tokenDecimalsDataSuccess]);
 
     const paymentMethodsRateCalls = useMemo(() => {
         if (!paymentMethodOptions || paymentMethodOptions.length == 0) {
@@ -222,6 +255,7 @@ export const SubscriptionButton = ({
                     return {
                         amount: rateAsHour * desiredHours,
                         symbol: paymentMethodOptions[paymentMethodIndex].text,
+                        decimals: paymentMethodOptions[paymentMethodIndex].decimals,
                         calculated: true,
                     }
                 }
@@ -230,6 +264,7 @@ export const SubscriptionButton = ({
         return {
             amount: ZERO_AMOUNT,
             symbol: "-",
+            decimals: 18,
             calculated: false,
         };
     }, [paymentMethodRateData, paymentMethodRateDataSuccess, paymentMethod, paymentMethodOptions, timeAmount]);
@@ -331,7 +366,7 @@ export const SubscriptionButton = ({
         }
     }, [subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
 
-    const totalPaymentAmount = formatEther(requiredTotalPayment);
+    const totalPaymentAmount = formatUnits(requiredTotalPayment, paymetMethodTotalPayment.decimals);
     const totalPaymentText = totalPaymentAmount.split(".").length == 1 ?
         totalPaymentAmount : totalPaymentAmount.split(".")[0] + "." + (totalPaymentAmount.split(".")[1].length > 5 ?
             totalPaymentAmount.split(".")[1].slice(0, 4) : totalPaymentAmount.split(".")[1]);
