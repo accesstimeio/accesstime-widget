@@ -12,6 +12,7 @@ import {
     Select,
     SimpleGrid,
     Skeleton,
+    Tag,
     Text
 } from "@chakra-ui/react"
 import {
@@ -25,9 +26,9 @@ import {
     zeroHash
 } from "viem";
 import { useReadContract, useReadContracts, useTransactionReceipt } from "wagmi";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
-import { Contract, getChainCurrencySymbol, getChainCurrencyDecimals } from "@accesstimeio/accesstime-common";
+import { Contract, getChainCurrencySymbol, getChainCurrencyDecimals, SUPPORTED_CHAIN } from "@accesstimeio/accesstime-common";
 
 import { ZERO_AMOUNT } from "../config";
 import { useAccessTime, useTokenAllowance } from "../hooks";
@@ -71,6 +72,37 @@ export const SubscriptionButton = ({
         error
     } = useAccessTime(chainId, accessTime);
     const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
+    const [customTimeToggle, setCustomTimeToggle] = useState<boolean>(false);
+    const [fixedTimes] = useState<{ text: string; value: number; }[]>([
+        {
+            text: "1H",
+            value: 3600
+        },
+        {
+            text: "4H",
+            value: 3600 * 4
+        },
+        {
+            text: "1D",
+            value: 3600 * 24
+        },
+        {
+            text: "1W",
+            value: 3600 * 24 * 7
+        },
+        {
+            text: "1M",
+            value: 3600 * 24 * 28
+        },
+        {
+            text: "3M",
+            value: 3600 * 24 * 28 * 3
+        },
+        {
+            text: "1Y",
+            value: 3600 * 24 * 28 * 12
+        },
+    ]);
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
     const [subscribeLoading, setSubscribeLoading] = useState<boolean>(false);
 
@@ -102,7 +134,7 @@ export const SubscriptionButton = ({
             isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
         return isExist;
-    }, [contractAPIDetails, contractDetails]);
+    }, [contractAPIDetails, contractDetails.deployed, contractDetails.packageModule, packageId]);
 
     const {
         data: packageData,
@@ -153,7 +185,7 @@ export const SubscriptionButton = ({
                     chainId
                 }))
         }
-    }, [contractAPIDetails])
+    }, [chainId, contractAPIDetails])
 
     const {
         data: tokenSymbolData,
@@ -168,7 +200,6 @@ export const SubscriptionButton = ({
 
     const {
         data: tokenDecimalsData,
-        isLoading: tokenDecimalsDataLoading,
         isSuccess: tokenDecimalsDataSuccess
     } = useReadContracts({
         query: {
@@ -194,9 +225,9 @@ export const SubscriptionButton = ({
             ) ?
                 tokenDecimalsData[paymentMethodTokenIndex]?.result : 18;
             const text = paymentMethod == zeroAddress ?
-                getChainCurrencySymbol(chainId) : tokenSymbol ? tokenSymbol : "-";
+                getChainCurrencySymbol(chainId as SUPPORTED_CHAIN) : tokenSymbol ? tokenSymbol : "-";
             const decimals = paymentMethod == zeroAddress ?
-                getChainCurrencyDecimals(chainId) : tokenDecimals ? tokenDecimals : 18;
+                getChainCurrencyDecimals(chainId as SUPPORTED_CHAIN) : tokenDecimals ? tokenDecimals : 18;
 
             if (paymentMethod != zeroAddress) {
                 paymentMethodTokenIndex++;
@@ -207,7 +238,7 @@ export const SubscriptionButton = ({
                 decimals
             }
         })
-    }, [contractAPIDetails, tokenSymbolData, tokenSymbolDataSuccess, tokenDecimalsData, tokenDecimalsDataSuccess]);
+    }, [contractAPIDetails, tokenSymbolDataSuccess, tokenSymbolData, tokenDecimalsDataSuccess, tokenDecimalsData, chainId]);
 
     const paymentMethodsRateCalls = useMemo(() => {
         if (!paymentMethodOptions || paymentMethodOptions.length == 0) {
@@ -222,7 +253,7 @@ export const SubscriptionButton = ({
             args: [getAddress(paymentMethod.value)],
             chainId
         }))
-    }, [paymentMethodOptions, chainId])
+    }, [paymentMethodOptions, accessTime, chainId])
 
     const {
         data: paymentMethodRateData,
@@ -273,7 +304,7 @@ export const SubscriptionButton = ({
         return paymetMethodTotalPayment.amount / parseEther("1");
     }, [paymetMethodTotalPayment.amount]);
 
-    const subscribeRouter = async () => {
+    const subscribeRouter = useCallback(async () => {
         if (
             timeAmount != null &&
             paymentMethod != null &&
@@ -294,6 +325,7 @@ export const SubscriptionButton = ({
                         getAddress(paymentMethod)
                     );
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (_err) {
                 setSubscribeLoading(false);
                 throw new Error("Contract call failed!");
@@ -306,7 +338,7 @@ export const SubscriptionButton = ({
             setSubscribeLoading(false);
             throw new Error("Requested time is invalid!");
         }
-    }
+    }, [onSubscription, packageId, paymentMethod, paymetMethodTotalPayment.amount, paymetMethodTotalPayment.calculated, requiredTotalPayment, subscribe, subscribePackage, timeAmount]);
 
     const paymentMethodExist = useMemo(() => {
         if (contractAPIDetails && contractAPIDetails.paymentMethods) {
@@ -329,7 +361,7 @@ export const SubscriptionButton = ({
         if (paymentMethodOptions.length > 0 && paymentMethod == null) {
             setPaymentMethod(getAddress(paymentMethodOptions[0].value));
         }
-    }, [paymentMethodOptions]);
+    }, [paymentMethod, paymentMethodOptions]);
 
     useEffect(() => {
         if (packageId) {
@@ -340,31 +372,38 @@ export const SubscriptionButton = ({
         } else {
             setTimeAmount(1);
         }
-    }, [packageData, packageDataSuccess]);
+    }, [packageData, packageDataSuccess, packageId]);
 
     useEffect(() => {
         if (onTimeAmount) {
             onTimeAmount(timeAmount);
         }
-    }, [timeAmount]);
+    }, [onTimeAmount, timeAmount]);
 
     useEffect(() => {
         if (paymentMethod != null) {
             updateApproveConfig(paymentMethod, requiredTotalPayment);
         }
-    }, [paymetMethodTotalPayment, paymentMethod]);
+    }, [paymetMethodTotalPayment, paymentMethod, updateApproveConfig, requiredTotalPayment]);
 
-    const refetch = async () => {
+    const refetch = useCallback(async () => {
         await approveRefetch();
         setSubscribeLoading(false);
         setSubscribeHash(zeroHash);
-    }
+    }, [approveRefetch]);
 
     useEffect(() => {
         if (subscribeHash != zeroHash && subscribeReceipt && subscribeReceiptSuccess) {
             refetch();
         }
-    }, [subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
+    }, [refetch, subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
+
+    useEffect(() => setTimeAmount(3600), []);
+
+    const resetCustomTime = useCallback(() => {
+        setCustomTimeToggle(false);
+        setTimeAmount(3600);
+    }, []);
 
     const totalPaymentAmount = formatUnits(requiredTotalPayment, paymetMethodTotalPayment.decimals);
     const totalPaymentText = totalPaymentAmount.split(".").length == 1 ?
@@ -419,15 +458,67 @@ export const SubscriptionButton = ({
                                 :
                                 <SimpleGrid columns={5} columnGap="2" w="full">
                                     {
-                                        contractDetails.packageModule == false && (
+                                        contractDetails.packageModule == false &&
+                                            !customTimeToggle ? (
                                             <GridItem mb={2} colSpan={5}>
-                                                {(timeAmount != null && config?.showTimeInformation == true) &&
-                                                    <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
-                                                <NumberInput min={1} max={9999999999} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
-                                                    !isNaN(Number(e)) && Number(e) < 9999999999 && setTimeAmount(Number(e))
-                                                }}>
-                                                    <NumberInputField />
-                                                </NumberInput>
+                                                <SimpleGrid columns={5} columnGap="2" w="full">
+                                                    {
+                                                        fixedTimes.map((fixedTime, index) => (
+                                                            <GridItem onClick={() => setTimeAmount(fixedTime.value)}>
+                                                                <Tag
+                                                                    key={`${accessTime}_${chainId}_fixedTime_${index}`}
+                                                                    cursor={"pointer"}
+                                                                    w={"full"}
+                                                                    size={"sm"}
+                                                                    variant={timeAmount == fixedTime.value ? "solid" : "outline"}
+                                                                    className="pointer"
+                                                                >
+                                                                    <Text w={"full"} textAlign={"center"}>{fixedTime.text}</Text>
+                                                                </Tag>
+                                                            </GridItem>
+                                                        ))
+                                                    }
+                                                    <GridItem colSpan={2} onClick={() => setCustomTimeToggle(true)}>
+                                                        <Tag
+                                                            key={`${accessTime}_${chainId}_fixedTime_custome`}
+                                                            cursor={"pointer"}
+                                                            w={"full"}
+                                                            size={"sm"}
+                                                            variant={"outline"}
+                                                            className="pointer"
+                                                        >
+                                                            <Text w={"full"} textAlign={"center"}>Custom</Text>
+                                                        </Tag>
+                                                    </GridItem>
+                                                </SimpleGrid>
+                                            </GridItem>
+                                        ) : (
+                                            <GridItem mb={2} colSpan={5}>
+                                                <SimpleGrid columns={5} columnGap="2" w="full">
+                                                    <GridItem colSpan={3}>
+                                                        {(timeAmount != null && config?.showTimeInformation == true) &&
+                                                            <Text fontSize="xs">Subscribe Time:<br /> {timeAmountHumanized}</Text>}
+                                                    </GridItem>
+                                                    <GridItem colSpan={2} w={"full"} alignContent={"center"}>
+                                                        <Tag
+                                                            key={`${accessTime}_${chainId}_fixedTime_custome`}
+                                                            cursor={"pointer"}
+                                                            w={"full"}
+                                                            size={"sm"}
+                                                            variant={"outline"}
+                                                            className="pointer"
+                                                        >
+                                                            <Text w={"full"} textAlign={"center"} onClick={resetCustomTime}>Reset</Text>
+                                                        </Tag>
+                                                    </GridItem>
+                                                    <GridItem colSpan={5}>
+                                                        <NumberInput min={1} max={9999999999} value={timeAmount == null ? 1 : timeAmount} onChange={(e) => {
+                                                            !isNaN(Number(e)) && Number(e) < 9999999999 && setTimeAmount(Number(e))
+                                                        }}>
+                                                            <NumberInputField />
+                                                        </NumberInput>
+                                                    </GridItem>
+                                                </SimpleGrid>
                                             </GridItem>
                                         )
                                     }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Address, Hash, parseAbi, zeroAddress, zeroHash } from "viem";
 import { useAccount, useReadContract, useTransactionReceipt, useWriteContract } from "wagmi";
 
@@ -88,6 +88,7 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
 
             setApproveLoading(false);
             throw new Error("Approve is not required!");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_err) {
             setApproveLoading(false);
             throw new Error("Approve failed!");
@@ -99,17 +100,17 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
         setDesiredAmount(desiredAmount);
     };
 
-    const refetch = async () => {
+    const refetch = useCallback(async () => {
         await allowanceRefetch();
         setApproveLoading(false);
         setApproveHash(zeroHash);
-    }
+    }, [allowanceRefetch]);
 
     useEffect(() => {
         if (approveHash != zeroHash && approveReceipt && approveReceiptSuccess) {
             refetch();
         }
-    }, [approveHash, approveReceipt, approveReceiptSuccess]);
+    }, [approveHash, approveReceipt, approveReceiptSuccess, refetch]);
 
     return {
         approveRequired,

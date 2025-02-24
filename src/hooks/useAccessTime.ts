@@ -149,7 +149,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             account: address,
             chain
         })
-    }, [contractAPIDetails, contractAPIDetailsSuccess]);
+    }, [accessTime, address, chain, contractAPIDetails, contractAPIDetailsSuccess, contractDetailsFormatted.deployed, contractDetailsFormatted.packageModule, walletConnection, writeContractAsync]);
 
     const subscribePackage = useCallback(async (amount: bigint, paymentToken: Address, packageId: string) => {
         if (!walletConnection) {
@@ -180,7 +180,7 @@ export const useAccessTime = (chainId: number, accessTime: Address): useAccessTi
             account: address,
             chain
         })
-    }, [contractDetailsFormatted, contractAPIDetails, contractAPIDetailsSuccess]);
+    }, [walletConnection, contractAPIDetailsSuccess, contractAPIDetails, contractDetailsFormatted.deployed, contractDetailsFormatted.packageModule, writeContractAsync, accessTime, address, chain]);
 
     const loading = useMemo(() => {
         return contractDetailsLoading || contractAPIDetailsLoading;

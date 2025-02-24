@@ -15,7 +15,7 @@ import { useMemo, useState } from "react";
 import { Address, Hash } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { DateTime } from "luxon";
-import { Contract, getChainName } from "@accesstimeio/accesstime-common";
+import { Contract, getChainName, SUPPORTED_CHAIN } from "@accesstimeio/accesstime-common";
 
 import { SubscriptionButton, ButtonConfig } from "./SubscriptionButton";
 
@@ -80,7 +80,7 @@ export const SubscriptionCard = ({
             isExist = contractAPIDetails.packages.indexOf(packageId) != -1 ? true : false;
         }
         return isExist;
-    }, [contractAPIDetails, contractDetails]);
+    }, [contractAPIDetails, contractDetails.deployed, contractDetails.packageModule, packageId]);
 
     const {
         data: packageData,
@@ -123,7 +123,7 @@ export const SubscriptionCard = ({
             args: [BigInt(extraTime)],
             chainId
         }))
-    }, [contractAPIDetails])
+    }, [accessTime, chainId, contractAPIDetails])
 
     const {
         data: extraTimeData,
@@ -227,7 +227,7 @@ export const SubscriptionCard = ({
                             borderRadius="lg"
                             textTransform="unset"
                         >
-                            {getChainName(chainId)}
+                            {getChainName(chainId as SUPPORTED_CHAIN)}
                         </Badge>
                     </Box>
                     <Box position="relative" minH={180} w="full">
