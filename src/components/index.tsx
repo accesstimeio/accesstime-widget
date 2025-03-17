@@ -1,11 +1,8 @@
 import {
     SubscriptionButton as Button,
     SubscriptionButtonProps as ButtonProps
-} from "./SubscriptionButton"
-import {
-    SubscriptionCard as Card,
-    SubscriptionCardProps as CardProps
-} from "./SubscriptionCard"
+} from "./SubscriptionButton";
+import { SubscriptionCard as Card, SubscriptionCardProps as CardProps } from "./SubscriptionCard";
 
 export const SubscriptionButton = ({
     chainId,
@@ -32,8 +29,8 @@ export const SubscriptionButton = ({
             onConnectWallet={onConnectWallet}
             onSwitchNetwork={onSwitchNetwork}
         />
-    )
-}
+    );
+};
 
 export const SubscriptionCard = ({
     chainId,
@@ -60,5 +57,5 @@ export const SubscriptionCard = ({
             onConnectWallet={onConnectWallet}
             onSwitchNetwork={onSwitchNetwork}
         />
-    )
-}
+    );
+};

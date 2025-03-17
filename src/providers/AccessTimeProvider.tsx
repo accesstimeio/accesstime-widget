@@ -11,10 +11,10 @@ export const AccessTimeProvider = ({
     wagmiState,
     colorMode
 }: {
-    children: React.ReactNode,
-    wagmiConfig: Config,
-    wagmiState?: State,
-    colorMode?: ColorMode
+    children: React.ReactNode;
+    wagmiConfig: Config;
+    wagmiState?: State;
+    colorMode?: ColorMode;
 }) => {
     const [cachedColorMode, setCachedColorMode] = useState<ColorMode>("light");
 
@@ -26,9 +26,7 @@ export const AccessTimeProvider = ({
 
     return (
         <WagmiProvider wagmiConfig={wagmiConfig} wagmiState={wagmiState}>
-            <ThemeProvider colorMode={cachedColorMode}>
-                {children}
-            </ThemeProvider>
+            <ThemeProvider colorMode={cachedColorMode}>{children}</ThemeProvider>
         </WagmiProvider>
-    )
-}
+    );
+};

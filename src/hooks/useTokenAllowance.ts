@@ -7,8 +7,8 @@ import { ZERO_AMOUNT } from "../config";
 
 interface useTokenAllowanceReturnType {
     approveRequired: {
-        status: boolean,
-        amount: bigint,
+        status: boolean;
+        amount: bigint;
     };
     approveCheckLoading: boolean;
     approveLoading: boolean;
@@ -17,7 +17,10 @@ interface useTokenAllowanceReturnType {
     refetch: () => Promise<void>;
 }
 
-export const useTokenAllowance = (chainId: number, accessTime: Address): useTokenAllowanceReturnType => {
+export const useTokenAllowance = (
+    chainId: number,
+    accessTime: Address
+): useTokenAllowanceReturnType => {
     const { address, chain } = useAccount();
     const { writeContractAsync } = useWriteContract();
     const [tokenAddress, setTokenAddress] = useState<Address>(zeroAddress);
@@ -30,7 +33,7 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
             enabled: approveHash != zeroHash ? true : false
         },
         hash: approveHash
-    })
+    });
 
     const {
         data: allowanceData,
@@ -42,19 +45,21 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
             enabled: tokenAddress == zeroAddress ? false : true
         },
         address: tokenAddress,
-        abi: parseAbi(["function allowance(address owner, address spender) view returns (uint256)"]),
+        abi: parseAbi([
+            "function allowance(address owner, address spender) view returns (uint256)"
+        ]),
         functionName: "allowance",
         args: [address ? address : zeroAddress, accessTime],
         chainId
-    })
+    });
 
     const approveRequired = useMemo(() => {
-        if ((tokenAddress != zeroAddress) && (desiredAmount > ZERO_AMOUNT) && allowanceSuccess) {
+        if (tokenAddress != zeroAddress && desiredAmount > ZERO_AMOUNT && allowanceSuccess) {
             if (desiredAmount > allowanceData) {
                 return {
                     status: true,
                     amount: desiredAmount - allowanceData
-                }
+                };
             }
         }
         return {
@@ -75,7 +80,9 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
             if (status) {
                 const transactionHash = await writeContractAsync({
                     address: tokenAddress,
-                    abi: parseAbi(["function approve(address spender,uint256 amount) returns (bool)"]),
+                    abi: parseAbi([
+                        "function approve(address spender,uint256 amount) returns (bool)"
+                    ]),
                     functionName: "approve",
                     args: [accessTime, desiredAmount],
                     account: address,
@@ -88,7 +95,7 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
 
             setApproveLoading(false);
             throw new Error("Approve is not required!");
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_err) {
             setApproveLoading(false);
             throw new Error("Approve failed!");
@@ -119,5 +126,5 @@ export const useTokenAllowance = (chainId: number, accessTime: Address): useToke
         approve,
         updateConfig,
         refetch
-    }
-}
+    };
+};

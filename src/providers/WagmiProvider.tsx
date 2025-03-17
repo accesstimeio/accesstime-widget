@@ -9,15 +9,13 @@ export const WagmiProvider = ({
     wagmiConfig,
     wagmiState
 }: {
-    children: React.ReactNode,
-    wagmiConfig: Config,
-    wagmiState?: State
+    children: React.ReactNode;
+    wagmiConfig: Config;
+    wagmiState?: State;
 }) => {
     return (
         <Provider config={wagmiConfig} initialState={wagmiState}>
-            <QueryClientProvider client={queryClient}>
-                {children}
-            </QueryClientProvider>
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </Provider>
     );
-}
+};
