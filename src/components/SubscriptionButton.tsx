@@ -32,7 +32,8 @@ import {
     Contract,
     getChainCurrencySymbol,
     getChainCurrencyDecimals,
-    SUPPORTED_CHAIN
+    SUPPORTED_CHAIN,
+    Dashboard
 } from "@accesstimeio/accesstime-common";
 
 import { ZERO_AMOUNT } from "../config";
@@ -78,36 +79,6 @@ export const SubscriptionButton = ({
     } = useAccessTime(chainId, accessTime);
     const [paymentMethod, setPaymentMethod] = useState<Address | null>(null);
     const [customTimeToggle, setCustomTimeToggle] = useState<boolean>(false);
-    const [fixedTimes] = useState<{ text: string; value: number }[]>([
-        {
-            text: "1H",
-            value: 3600
-        },
-        {
-            text: "4H",
-            value: 3600 * 4
-        },
-        {
-            text: "1D",
-            value: 3600 * 24
-        },
-        {
-            text: "1W",
-            value: 3600 * 24 * 7
-        },
-        {
-            text: "1M",
-            value: 3600 * 24 * 28
-        },
-        {
-            text: "3M",
-            value: 3600 * 24 * 28 * 3
-        },
-        {
-            text: "1Y",
-            value: 3600 * 24 * 28 * 12
-        }
-    ]);
     const [timeAmount, setTimeAmount] = useState<number | null>(null);
     const [subscribeLoading, setSubscribeLoading] = useState<boolean>(false);
 
@@ -498,7 +469,7 @@ export const SubscriptionButton = ({
                     {contractDetails.packageModule == false && !customTimeToggle ? (
                         <GridItem mb={2} colSpan={5}>
                             <SimpleGrid columns={5} columnGap="2" w="full">
-                                {fixedTimes.map((fixedTime, index) => (
+                                {Dashboard.fixedTimes.map((fixedTime, index) => (
                                     <GridItem onClick={() => setTimeAmount(fixedTime.value)}>
                                         <Tag
                                             key={`${accessTime}_${chainId}_fixedTime_${index}`}
