@@ -383,13 +383,13 @@ export const SubscriptionButton = ({
     }, [paymentMethod, paymentMethodOptions]);
 
     useEffect(() => {
-        if (packageId) {
+        if (!isNaN(Number(packageId))) {
             if (packageData && packageDataSuccess) {
                 const packageTimeInSeconds = Number(packageData[0].toString());
                 setTimeAmount(packageTimeInSeconds);
             }
         } else {
-            setTimeAmount(1);
+            setTimeAmount(3600);
         }
     }, [packageData, packageDataSuccess, packageId]);
 
@@ -417,12 +417,12 @@ export const SubscriptionButton = ({
         }
     }, [refetch, subscribeHash, subscribeReceipt, subscribeReceiptSuccess]);
 
-    useEffect(() => setTimeAmount(3600), []);
-
     const resetCustomTime = useCallback(() => {
-        setCustomTimeToggle(false);
-        setTimeAmount(3600);
-    }, []);
+        if (typeof packageId == "undefined") {
+            setCustomTimeToggle(false);
+            setTimeAmount(3600);
+        }
+    }, [packageId]);
 
     const totalPaymentAmount = formatUnits(requiredTotalPayment, paymetMethodTotalPayment.decimals);
     const totalPaymentText =
@@ -514,38 +514,42 @@ export const SubscriptionButton = ({
                                         </Text>
                                     )}
                                 </GridItem>
-                                <GridItem colSpan={2} w={"full"} alignContent={"center"}>
-                                    <Tag
-                                        key={`${accessTime}_${chainId}_fixedTime_custome`}
-                                        cursor={"pointer"}
-                                        w={"full"}
-                                        size={"sm"}
-                                        variant={"outline"}
-                                        className="pointer"
-                                    >
-                                        <Text
-                                            w={"full"}
-                                            textAlign={"center"}
-                                            onClick={resetCustomTime}
-                                        >
-                                            Reset
-                                        </Text>
-                                    </Tag>
-                                </GridItem>
-                                <GridItem colSpan={5}>
-                                    <NumberInput
-                                        min={1}
-                                        max={9999999999}
-                                        value={timeAmount == null ? 1 : timeAmount}
-                                        onChange={(e) => {
-                                            !isNaN(Number(e)) &&
-                                                Number(e) < 9999999999 &&
-                                                setTimeAmount(Number(e));
-                                        }}
-                                    >
-                                        <NumberInputField />
-                                    </NumberInput>
-                                </GridItem>
+                                {contractDetails.packageModule == false && (
+                                    <>
+                                        <GridItem colSpan={2} w={"full"} alignContent={"center"}>
+                                            <Tag
+                                                key={`${accessTime}_${chainId}_fixedTime_custome`}
+                                                cursor={"pointer"}
+                                                w={"full"}
+                                                size={"sm"}
+                                                variant={"outline"}
+                                                className="pointer"
+                                            >
+                                                <Text
+                                                    w={"full"}
+                                                    textAlign={"center"}
+                                                    onClick={resetCustomTime}
+                                                >
+                                                    Reset
+                                                </Text>
+                                            </Tag>
+                                        </GridItem>
+                                        <GridItem colSpan={5}>
+                                            <NumberInput
+                                                min={1}
+                                                max={9999999999}
+                                                value={timeAmount == null ? 1 : timeAmount}
+                                                onChange={(e) => {
+                                                    !isNaN(Number(e)) &&
+                                                        Number(e) < 9999999999 &&
+                                                        setTimeAmount(Number(e));
+                                                }}
+                                            >
+                                                <NumberInputField />
+                                            </NumberInput>
+                                        </GridItem>
+                                    </>
+                                )}
                             </SimpleGrid>
                         </GridItem>
                     )}
